@@ -1,0 +1,7 @@
+{"_note":"Codified from 'The Build — Trading Playbook' (19 Oct). Lines marked stale need refreshing by you. Names with no line use an auto gate (20-day low zone) and still need EV >= 2.5:1.",
+ "risk_per_trade": 0.01, "starter_cap": 0.015, "max_single": 0.10, "min_rr": 2.5,
+ "day_loss_no_entries": -0.03, "dd_half": -0.08, "dd_stop": -0.12, "trail_after": 0.15, "trail_pct": 0.08, "dead_money": -0.25,
+ "fear": {"sym": "SPY", "level": 662.5},
+ "lines": {"PANW": {"gate_lo": 330, "gate_hi": 345, "abort": 330, "target": 391, "stale": "19 Oct"},
+           "META": {"gate_hi": 660, "stale": "19 Oct"}, "CRWD": {"gate_hi": 246, "stale": "19 Oct"}},
+ "excluded": ["AMZN", "TTWO"], "max_positions": 8}

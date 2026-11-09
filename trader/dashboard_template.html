@@ -1,0 +1,86 @@
+<title>Swarm Trader Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: paper page. Header and two account cards, one equity chart against SPY/QQQ, the swarm panel, forecast calls, open positions, trade log, rules. */
+:root{--bg:#f1efe8;--paper:#faf8f2;--ink:#17160f;--mute:#6b6759;--line:#d9d4c4;--gold:#b07d1c;--goldSoft:#f0e6cc;--up:#1f8a5b;--dn:#b3372f;--spy:#8a8676;--qqq:#2f5fbf;--pb:#b07d1c;--mx:#7a3fbf;--grid:#e4dfcf;--panel:#0f0f0c;--panelInk:#ece8da;--panelMute:#8d8a7b;
+--disp:'Bricolage Grotesque',Georgia,serif;--sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12110c;--paper:#1a1913;--ink:#efeadb;--mute:#9a9585;--line:#2e2c22;--gold:#d9a441;--goldSoft:#2c2514;--up:#3ec99a;--dn:#f27d73;--spy:#a39e8c;--qqq:#7aa2ff;--pb:#d9a441;--mx:#b88cff;--grid:#26241b;--panel:#080806;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12110c;--paper:#1a1913;--ink:#efeadb;--mute:#9a9585;--line:#2e2c22;--gold:#d9a441;--goldSoft:#2c2514;--up:#3ec99a;--dn:#f27d73;--spy:#a39e8c;--qqq:#7aa2ff;--pb:#d9a441;--mx:#b88cff;--grid:#26241b;--panel:#080806;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;padding-block:24px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.eyebrow{font:500 11px var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+h1{font-family:var(--disp);font-weight:800;font-size:clamp(38px,8vw,66px);line-height:.95;letter-spacing:-.03em;margin:6px 0 0;text-wrap:balance}h1 em{font-style:normal;color:var(--gold)}
+h2{font-family:var(--disp);font-weight:700;font-size:24px;letter-spacing:-.02em;margin:0 0 10px}
+.lede{max-width:64ch;color:var(--mute);font-size:15px;margin:10px 0 0}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.acct{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;border-top:4px solid var(--pb)}.acct.mx{border-top-color:var(--mx)}
+.acct h3{font:800 22px var(--disp);margin:0;letter-spacing:-.02em}.acct .sub{color:var(--mute);font-size:12.5px;margin:2px 0 10px}
+.big{font:800 36px var(--disp);letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.05}
+.kv{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;margin-top:10px}.kv span{display:block;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}.kv b{font:700 15px var(--disp);font-variant-numeric:tabular-nums}
+.chartbox{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font:500 12px var(--mono);color:var(--mute);margin-bottom:6px}.legend i{display:inline-block;width:20px;border-top:3px solid;vertical-align:middle;margin-right:6px}
+svg{width:100%;height:auto;display:block}svg text{font-family:var(--mono);font-size:10.5px;fill:var(--mute)}
+.panel{background:var(--panel);color:var(--panelInk);border-radius:12px;padding:14px;border:1px solid #2a2820;display:flex;flex-direction:column;gap:10px}
+.pcap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 14px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--panelMute)}
+.dec{font-size:13px;border-left:3px solid #d9a441;padding-left:10px}
+.veto{display:flex;flex-direction:column;gap:6px;font-size:12.5px}.veto div{border:1px solid #5a2f2a;background:#1b1210;border-radius:8px;padding:6px 10px}.veto b{color:#f27d73}
+.bots{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}.bot{border:1px solid #2a2820;border-radius:8px;padding:8px 10px;font-size:12.5px;min-width:0}.bot .n{display:flex;justify-content:space-between;gap:8px;font-weight:600}.bot p{margin:3px 0 0;color:var(--panelMute)}
+.vd{font:500 10.5px var(--mono);letter-spacing:.05em;text-transform:uppercase}.vd.pro{color:#3ec99a}.vd.con{color:#f27d73}.vd.neutral{color:#8d8a7b}
+.tablebox{background:var(--paper);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:620px;font-variant-numeric:tabular-nums}th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}th:first-child,td:first-child,td.l,th.l{text-align:left}td.l{white-space:normal;min-width:240px;max-width:420px;color:var(--mute);font-size:12.5px}
+.sym{font:700 15px var(--disp)}.tag{font:500 11px var(--mono);padding:1px 7px;border-radius:99px;border:1px solid currentColor}.tag.pb{color:var(--pb)}.tag.mx{color:var(--mx)}
+.note{background:var(--goldSoft);border-radius:10px;padding:12px 14px;font-size:13px}
+.rules{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 18px;color:var(--mute);font-size:13px}.rules li{margin:4px 0}.rules b{color:var(--ink)}
+.seg{display:flex;gap:6px;margin-bottom:8px}.seg button{font:500 12px var(--mono);background:var(--paper);border:1px solid var(--line);color:var(--mute);padding:6px 12px;border-radius:99px;cursor:pointer}.seg button.on{background:var(--ink);color:var(--bg)}
+</style>
+<div class="wrap">
+<header>
+ <div class="eyebrow" id="eb"></div>
+ <h1>Swarm <em>trader</em> desk</h1>
+ <p class="lede">Two mechanical mock accounts trade the same market data under written rules. The research swarm can veto a trade and adds the reason. Every hourly run replays each 5-minute bar since the last one, so resting limits and stops are not missed between runs.</p>
+</header>
+<section class="two" id="accts"></section>
+<section><h2>Equity vs SPY and QQQ</h2><div class="chartbox"><div class="legend"><span><i style="border-color:var(--pb)"></i>Playbook account</span><span><i style="border-color:var(--mx)"></i>Max-ROI account</span><span><i style="border-color:var(--spy)"></i>SPY</span><span><i style="border-color:var(--qqq);border-top-style:dashed"></i>QQQ</span></div><svg id="chart" viewBox="0 0 760 300" role="img" aria-label="Equity curves of both mock accounts against SPY and QQQ, indexed to 1000"></svg></div></section>
+<section><h2>The swarm</h2><div class="panel" id="swarm"></div></section>
+<section><h2>Forecast calls on your holdings</h2><div class="tablebox"><table id="calls"></table></div></section>
+<section><h2>Open positions</h2><div class="tablebox"><table id="pos"></table></div></section>
+<section><h2>Trade log</h2><div class="seg" id="seg"><button data-f="all" class="on">Both</button><button data-f="playbook">Playbook</button><button data-f="maxroi">Max-ROI</button></div><div class="tablebox"><table id="log"></table></div></section>
+<section class="rules"><b>Rules</b><ul>
+<li><b>Playbook account</b> (from your Trading Playbook): buy only inside a gate, at 2.5:1 or better to target; risk 1% of equity per trade, starter cap 1.5%, single-name cap 10%; trailing stop once +15%; cut at −25% from cost; no entries within 24 hours of a holding's earnings; no new entries after a −3% day; half size at −8% drawdown, none at −12%. No re-buy for a week after a stop-out. Gates for PANW, META and CRWD are from 19 Oct and need your refresh.</li>
+<li><b>Max-ROI account</b>: long-only trend pullback. Buys a stock in an uptrend (50-day above 200-day) that has pulled back 1.5 ATR from its 20-day high, only while SPY is above its 50-day average. Stop 2 ATR, target 4 ATR, 15-day time stop, risk 1%, 15% single-name cap, same drawdown guards.</li>
+<li><b>Swarm</b> can veto any entry for a name or pause everything. It cannot place a trade.</li>
+<li>Fills: 5-minute bars, next bar after a signal, 3 bp slippage each way, $1 per order. Paper money only; nothing touches IBKR.</li></ul>
+<p id="cav"></p></section>
+</div>
+<script>
+/*DATA*/
+const $=id=>document.getElementById(id),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pc=(v,d=1)=>(v>=0?'+':'')+(v*100).toFixed(d)+'%',cl=v=>v>0?'up':v<0?'dn':'',usd=v=>'$'+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const T=s=>new Date(s).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'UTC'})+' UTC';
+const B=DATA.bench,b0=B[0];$('eb').textContent=DATA.label+' · mock accounts of $'+DATA.playbook.start.toLocaleString()+' each · no real orders';
+const spyR=B.at(-1).spy/b0.spy-1,qqqR=B.at(-1).qqq/b0.qqq-1;
+function stats(a){const c=a.curve.map(p=>p.eq);let pk=0,dd=0;c.forEach(v=>{pk=Math.max(pk,v);dd=Math.min(dd,v/pk-1)});const s=a.trades.filter(t=>t.side==='SELL'),w=s.filter(t=>t.pnl>0).length;return {ret:a.equity/a.start-1,dd,n:a.trades.filter(t=>t.side==='BUY').length,w,c:s.length}}
+$('accts').innerHTML=[['playbook','Playbook account','Your rules, coded',''],['maxroi','Max-ROI account','Trend pullback, drawdown-guarded','mx']].map(([k,t,sub,c])=>{const a=DATA[k],s=stats(a);return `<div class="acct ${c}"><h3>${t}</h3><div class="sub">${sub}</div><div class="big">${usd(a.equity)}</div><div class="${cl(s.ret)}">${pc(s.ret,2)} since start</div><div class="kv"><div><span>vs SPY</span><b class="${cl(s.ret-spyR)}">${pc(s.ret-spyR,2)}</b></div><div><span>vs QQQ</span><b class="${cl(s.ret-qqqR)}">${pc(s.ret-qqqR,2)}</b></div><div><span>Max drawdown</span><b class="dn">${pc(s.dd,2)}</b></div><div><span>Wins / closed</span><b>${s.w}/${s.c}</b></div><div><span>Cash</span><b>${usd(a.cash)}</b></div><div><span>Entries</span><b>${s.n}</b></div></div></div>`}).join('');
+(function(){const W=760,H=300,L=46,R=14,Tp=12,Bt=26;const mk=a=>a.curve.map(p=>({t:p.t,v:p.eq/a.start*1000}));const P=mk(DATA.playbook),M=mk(DATA.maxroi);
+ const S=B.map(p=>({t:p.t,v:p.spy/b0.spy*1000})),Q=B.map(p=>({t:p.t,v:p.qqq/b0.qqq*1000}));
+ const all=[...P,...M,...S,...Q];const t0=Math.min(...all.map(p=>+new Date(p.t))),t1=Math.max(...all.map(p=>+new Date(p.t)));let lo=Math.min(...all.map(p=>p.v),1000),hi=Math.max(...all.map(p=>p.v),1000);const pad=(hi-lo)*.1+4;lo-=pad;hi+=pad;
+ const X=t=>L+(new Date(t)-t0)/(t1-t0||1)*(W-L-R),Y=v=>Tp+(hi-v)/(hi-lo)*(H-Tp-Bt);let g='';
+ for(let i=0;i<=4;i++){const v=lo+(hi-lo)*i/4;g+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--grid)"/><text x="${L-6}" y="${Y(v)+3}" text-anchor="end">${v.toFixed(0)}</text>`}
+ g+=`<line x1="${L}" x2="${W-R}" y1="${Y(1000)}" y2="${Y(1000)}" stroke="var(--mute)" stroke-dasharray="2 4" opacity=".6"/>`;
+ for(let i=0;i<=5;i++){const t=t0+(t1-t0)*i/5;g+=`<text x="${L+(W-L-R)*i/5}" y="${H-8}" text-anchor="middle">${new Date(t).toLocaleDateString('en-GB',{day:'2-digit',month:'short',timeZone:'UTC'})}</text>`}
+ const ln=(a,c,d,w)=>`<polyline fill="none" stroke="${c}" stroke-width="${w}" ${d?'stroke-dasharray="6 4"':''} stroke-linejoin="round" points="${a.map(p=>X(p.t)+','+Y(p.v)).join(' ')}"/>`;
+ g+=ln(S,'var(--spy)',0,1.6)+ln(Q,'var(--qqq)',1,1.6)+ln(M,'var(--mx)',0,2.4)+ln(P,'var(--pb)',0,2.6);$('chart').innerHTML=g})();
+const sw=DATA.swarm,D=DATA.desk,vt=Object.entries(sw.veto||{});
+$('swarm').innerHTML=`<div class="pcap"><span>Veto and context</span><span>${esc(D.asof)}</span></div><div class="dec"><b>Regime.</b> ${esc(sw.regime)}<br><b>Decision.</b> ${esc(D.decision)}</div>${sw.global_pause?'<div class="veto"><div><b>All entries paused</b></div></div>':''}${vt.length?`<div class="veto">${vt.map(([s,r])=>`<div><b>${esc(s)} vetoed.</b> ${esc(r)}</div>`).join('')}</div>`:''}<div class="bots">${D.bots.map(b=>`<div class="bot"><div class="n"><span>${esc(b.name)}</span><span class="vd ${b.verdict}">${b.verdict}</span></div><p>${esc(b.line)}</p></div>`).join('')}</div>`;
+$('calls').innerHTML=DATA.calls.length?`<thead><tr><th>Holding</th><th>Price</th><th class="l">Most likely, next 10 trading days</th><th>Chance</th><th>Strength</th></tr></thead><tbody>${DATA.calls.map(c=>`<tr><td><span class="sym">${esc(c.sym)}</span></td><td>${c.px.toFixed(2)} ${c.cur}</td><td class="l" style="color:var(--ink)">${esc(c.call)}</td><td>${Math.round(c.prob*100)}%</td><td>${esc(c.conf)}</td></tr>`).join('')}</tbody>`:'<tbody><tr><td class="l">Forecast calls unavailable in this build.</td></tr></tbody>';
+const rows=[...DATA.playbook.pos.map(p=>({...p,k:'pb'})),...DATA.maxroi.pos.map(p=>({...p,k:'mx'}))];
+$('pos').innerHTML=rows.length?`<thead><tr><th>Name</th><th>Account</th><th>Qty</th><th>Entry</th><th>Last</th><th>P&amp;L</th><th>Stop</th><th>Target</th><th class="l">Why</th></tr></thead><tbody>${rows.map(p=>{const pn=p.qty*(p.last-p.entry);return `<tr><td><span class="sym">${esc(p.sym)}</span></td><td><span class="tag ${p.k}">${p.k=='pb'?'Playbook':'Max-ROI'}</span></td><td>${p.qty.toFixed(3)}</td><td>${p.entry.toFixed(2)}</td><td>${p.last.toFixed(2)}</td><td class="${cl(pn)}">${pn>=0?'+':''}${usd(pn)}</td><td>${p.stop.toFixed(2)}</td><td>${p.target.toFixed(2)}</td><td class="l">${esc(p.why)}</td></tr>`}).join('')}</tbody>`:'<tbody><tr><td class="l">No open positions. All cash.</td></tr></tbody>';
+function log(f){const all=[...DATA.playbook.trades.map(t=>({...t,k:'pb',kk:'playbook'})),...DATA.maxroi.trades.map(t=>({...t,k:'mx',kk:'maxroi'}))].filter(t=>f=='all'||t.kk==f).sort((a,b)=>b.t.localeCompare(a.t)).slice(0,120);
+ $('log').innerHTML=`<thead><tr><th>Time</th><th>Account</th><th>Side</th><th>Name</th><th>Qty</th><th>Price</th><th>P&amp;L</th><th class="l">Reason</th></tr></thead><tbody>${all.map(t=>`<tr><td>${T(t.t)}</td><td><span class="tag ${t.k}">${t.k=='pb'?'Playbook':'Max-ROI'}</span></td><td class="${t.side=='BUY'?'up':'dn'}">${t.side}</td><td><span class="sym">${esc(t.sym)}</span></td><td>${t.qty}</td><td>${t.px}</td><td class="${cl(t.pnl||0)}">${t.pnl!=null?(t.pnl>=0?'+':'')+usd(t.pnl):'–'}</td><td class="l">${esc(t.note)}</td></tr>`).join('')}</tbody>`}
+log('all');document.querySelectorAll('#seg button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#seg button').forEach(x=>x.classList.toggle('on',x==b));log(b.dataset.f)});
+$('cav').innerHTML=DATA.label.startsWith('Replay')?'<b style="color:var(--ink)">This is a replay, not live trading.</b> The same rules were run over 5-minute bars from 12 Oct to 6 Nov 2026 to test the engine. That window was a sell-off (SPY −5%, QQQ −12%), so it is a hard test of long-only rules and says little about other markets. Swarm vetoes were switched off for the replay, because the ones shown above are from 9 Nov.':'';
+</script>

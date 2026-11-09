@@ -1,0 +1,2 @@
+{"symbols": ["SPY","QQQ","IWM","NVDA","MSFT","AAPL","GOOGL","AMZN","META","TSLA","AVGO","AMD","PANW","CRWD","NBIS","JBL","TTWO","JPM","GS","XOM","LLY","UNH","WMT","COST","NEE","WMB","MU","INTC","PLTR","NFLX"],
+ "start_equity": 5000, "fee_per_order": 1.0, "slippage_bp": 3}
