@@ -1,0 +1,8 @@
+{
+ "_note": "Event risk widens uncertainty (probabilities shrink 15% toward even). Hand-maintained from the Portfolio MD swarm notes; verified=false means not confirmed by a primary source.",
+ "events": [
+  {"date":"2026-11-10","label":"US CPI print (Tue). A hot print would hit long-duration tech; Dec hike odds reported ~78%","scope":"all","verified":false},
+  {"date":"2026-11-09","label":"TTWO earnings tonight after close (swarm found no data to confirm)","scope":["TTWO","TTWO 27MAR19 230 C"],"verified":false},
+  {"date":"2026-11-18","label":"NVDA earnings expected ~18 Nov (date unconfirmed)","scope":["NVDA"],"verified":false}
+ ]
+}

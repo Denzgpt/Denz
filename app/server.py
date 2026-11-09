@@ -3,6 +3,7 @@
 import json, os, sys, time, threading, urllib.parse
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 import data, groups, forecast
+import numpy as np, datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOG = os.path.join(HERE, "forecast_log.jsonl")
@@ -36,15 +37,39 @@ def api_forecast(sym, interval, horizon):
         if hit and time.time() - hit[0] < FC_TTL and hit[1]["lastBarT"] == bars[-1]["t"]:
             res = hit[1]
         else:
-            res = forecast.forecast(bars, horizon=horizon, n=100, step="1h" if interval == "1h" else "1D")
+            res = forecast.forecast(bars, horizon=horizon, n=400, step="1h" if interval == "1h" else "1D")
             res["lastBarT"] = bars[-1]["t"]
             FC[key] = (time.time(), res)
             with open(LOG, "a") as f:
                 f.write(json.dumps({"sym": h["yahoo"], "interval": interval, "t0": bars[-1]["t"], "last": res["last"],
                                     "p10": res["p10"], "p90": res["p90"], "median": res["median"]}) + "\n")
     q = data.quote(h["yahoo"])
-    return {**res, "bars": bars[-120:], "quote": q, "now": int(time.time()), "currency": meta.get("currency"),
+    closes = [b["c"] for b in data.bars(h["yahoo"], interval, "6mo" if interval == "1h" else "2y", ttl=300)[0]]
+    try: cal = calibration(h["yahoo"], interval, horizon)
+    except Exception: cal = None
+    an = forecast.analyse(res["_np"], closes, horizon, events_for(sym, bars[-1]["t"], interval, horizon), cal)
+    return {**{k: v for k, v in res.items() if k != "_np"}, "analysis": an, "bars": bars[-120:], "quote": q, "now": int(time.time()), "currency": meta.get("currency"),
             "option": h.get("option"), "marketState": meta.get("currentTradingPeriod") and "see-asof"}
+
+def events_for(sym, last_t, interval, horizon):
+    try: ev = json.load(open(os.path.join(HERE, "events.json")))["events"]
+    except Exception: return []
+    days = (horizon / 6.5 if interval == "1h" else horizon * 1.45) + 1
+    d0 = datetime.datetime.utcfromtimestamp(last_t).date()
+    out = []
+    for e in ev:
+        d = datetime.date.fromisoformat(e["date"])
+        if (e["scope"] == "all" or sym in e["scope"]) and 0 <= (d - d0).days <= days:
+            out.append({"date": e["date"], "label": e["label"], "verified": e.get("verified", False)})
+    return out
+
+CAL = {}
+def calibration(yahoo, interval, horizon):
+    key = (yahoo, interval, horizon)
+    if key not in CAL:
+        bars, _ = data.bars(yahoo, interval, "6mo" if interval == "1h" else "2y", ttl=3600)
+        CAL[key] = forecast.calibrate([b["c"] for b in bars], horizon, step=6 if interval == "1h" else 3)
+    return CAL[key]
 
 def api_hitrate(sym, interval):
     """Share of past forecasts whose realised path stayed inside the p10-p90 band, per bar."""

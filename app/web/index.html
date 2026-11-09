@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en" style="color-scheme:dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Holdings Forecast</title>
 <style>
-:root{--bg:#070d12;--panel:#0b141b;--line:#16262f;--tx:#cfe3ea;--dim:#6f8b96;--up:#2ee6b6;--dn:#ff5a6a;--ac:#4cc9f0;--warn:#ffb000}
+:root{--bg:#070d12;--panel:#0b141b;--line:#16262f;--tx:#cfe3ea;--dim:#6f8b96;--up:#2ee6b6;--dn:#ff5a6a;--ac:#4cc9f0;--warn:#ffb000;--gold:#ffd166}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px ui-monospace,Menlo,Consolas,monospace}
 header{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 h1{font-size:14px;margin:0;letter-spacing:.1em;color:var(--ac)}.pill{border:1px solid var(--line);padding:2px 8px;border-radius:99px;color:var(--dim)}
@@ -22,6 +22,15 @@ canvas{width:100%;height:200px;display:block;margin:8px 0}
 .fresh{font-size:11px;color:var(--dim)}.fresh.stale{color:var(--warn)}.err{color:var(--dn);font-size:11px}
 .ctl{margin-left:auto;display:flex;gap:6px}.ctl button{background:none;border:1px solid var(--line);color:var(--dim);padding:3px 8px;border-radius:5px;cursor:pointer;font:inherit}.ctl button.on{color:var(--ac);border-color:var(--ac)}
 .opt{color:var(--warn);font-size:11px}
+.call{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:8px;padding:8px 10px;border:1px solid var(--ac);border-radius:6px;background:rgba(76,201,240,.07)}
+.call .k{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}.call .v{font-size:15px;font-weight:700}
+.call .pr{font-size:22px;font-weight:700;color:var(--gold)}.call .cf{font-size:10px;color:var(--dim);text-align:right}
+.sbar{display:flex;height:22px;gap:2px;margin:8px 0 2px}.sbar div{display:flex;align-items:center;justify-content:center;font-size:10px;background:#12222b;color:var(--dim);border-radius:3px;min-width:0;overflow:hidden}
+.sbar div.top{background:var(--gold);color:#1a1300;font-weight:700}
+.slab{display:flex;gap:2px;font-size:9px;color:var(--dim)}.slab span{text-align:center;min-width:0;overflow:hidden;white-space:nowrap}
+.why,.evt{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.45}.evt{color:var(--warn)}
+.cal{font-size:11px;color:var(--dim);margin-top:4px}
+
 </style></head><body>
 <header><h1>HOLDINGS FORECAST</h1><span class="pill" id="eng">engine…</span><span class="pill ro">READ-ONLY · NO ORDERS</span>
 <span class="pill" id="clock"></span>
@@ -31,20 +40,30 @@ canvas{width:100%;height:200px;display:block;margin:8px 0}
 let G={},tab=null,interval='1h',F={},HR={};
 const $=s=>document.querySelector(s),fmt=(x,d=2)=>x==null?'–':Number(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
 const ago=t=>{if(!t)return'no data';const s=Math.max(0,Date.now()/1000-t);return s<90?Math.round(s)+'s ago':s<5400?Math.round(s/60)+'m ago':s<172800?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago'};
-async function j(u){const r=await fetch(u);const d=await r.json();if(d.error)throw new Error(d.error);return d}
+async function j(u){if(window.SNAPSHOT){const d=window.SNAPSHOT[u];if(!d)throw new Error('not in snapshot');return d}const r=await fetch(u);const d=await r.json();if(d.error)throw new Error(d.error);return d}
 document.querySelectorAll('.ctl button').forEach(b=>b.onclick=()=>{interval=b.dataset.i;document.querySelectorAll('.ctl button').forEach(x=>x.classList.toggle('on',x==b));F={};render();loadForecasts()});
 function tabs(){const n=$('#tabs');n.innerHTML='';Object.keys(G).sort().forEach(g=>{const b=document.createElement('button');b.textContent=`${g} (${G[g].length})`;b.className=g==tab?'on':'';b.onclick=()=>{tab=g;tabs();render();loadForecasts()};n.append(b)})}
 function render(){const m=$('#main');m.innerHTML='';(G[tab]||[]).forEach(h=>{const c=document.createElement('div');c.className='card';c.id='c-'+h.symbol.replace(/\W/g,'_');m.append(c);draw(h)})}
-function draw(h){const c=document.getElementById('c-'+h.symbol.replace(/\W/g,'_'));if(!c)return;const f=F[h.symbol]+'',d=F[h.symbol],q=d&&d.quote||h;
+function draw(h){const c=document.getElementById('c-'+h.symbol.replace(/\W/g,'_'));if(!c)return;const d=F[h.symbol],q=d&&d.quote||h,A=d&&d.analysis;
  const px=q.price,pc=q.prevClose||h.prevClose,chg=pc?(px/pc-1)*100:null,age=q.asof?Date.now()/1000-q.asof:1e9;
- const stale=age>(interval=='1h'?1200:90000);
+ const stale=window.SNAPSHOT?false:age>(interval=='1h'?1200:90000);
+ const pct=x=>fmt(x*100,0)+'%';
+ let call='',bar='',why='',cal='';
+ if(A){const T=A.scenarios[A.top],rng=(T.from?fmt(T.from):'…')+' – '+(T.to?fmt(T.to):'…');
+  call=`<div class="call"><div><div class="k">Most likely · next ${d.horizon} ${interval=='1h'?'hours':'days'}</div><div class="v">${A.confidence=='Toss-up'?'No clear favorite':T.name}</div><div class="k">${A.confidence=='Toss-up'?'Slight lean: '+T.name+' · ':''}${h.currency} ${rng}</div></div><div style="text-align:right"><div class="pr">${pct(A.topProb)}</div><div class="cf">${A.confidence}</div></div></div>`;
+  bar=`<div class="sbar">${A.scenarios.map((s,i)=>`<div class="${i==A.top?'top':''}" style="flex:${Math.max(s.prob,.04)}">${s.prob>=.08?pct(s.prob):''}</div>`).join('')}</div><div class="slab">${A.scenarios.map(s=>`<span style="flex:${Math.max(s.prob,.04)}">${s.prob>=.12?s.name.split(' ').pop():''}</span>`).join('')}</div>`;
+  const e=A.evidence;why=`<div class="why">Basis: model paths (${d.samples}) tilted by trend ${e.trend>=0?'+':''}${e.trend} and RSI ${e.rsi}${e.reversion?' (stretched, mean-reversion nudge)':''}. Gold line is the average path inside the favoured scenario, not the median.</div>`;
+  if(A.events.length)why+=`<div class="evt">⚠ Event risk in window (confidence reduced): ${A.events.map(x=>x.date.slice(5)+' '+x.label+(x.verified?'':' [unverified]')).join(' · ')}</div>`;
+  const k=A.calibration;cal=k?`<div class="cal">Track record of this method on ${h.symbol}: favoured scenario happened ${pct(k.realized)} of ${k.n} past calls (model claimed ${pct(k.stated)}; always guessing "range-bound" scores ${pct(k.alwaysRange)}). Displayed % is already scaled to that record.</div>`:''}
  c.innerHTML=`<div class="top"><div><span class="sym">${h.symbol}</span><div class="nm">${h.name}</div></div><div style="text-align:right"><div class="px">${fmt(px)} <small>${h.currency}</small></div><div class="${chg>=0?'up':'dn'}">${chg==null?'':(chg>=0?'+':'')+fmt(chg)+'%'}</div></div></div>
- <canvas></canvas>
- ${d?`<div class="stats"><div><span>P(up) @${d.horizon}</span><b class="${d.probUp>=.5?'up':'dn'}">${fmt(d.probUp*100,0)}%</b></div><div><span>Median move</span><b class="${d.expMovePct>=0?'up':'dn'}">${fmt(d.expMovePct)}%</b></div><div><span>P10 – P90</span><b>${fmt(d.p10.at(-1))}–${fmt(d.p90.at(-1))}</b></div><div><span>Hit-rate</span><b>${HR[h.symbol]&&HR[h.symbol].n?fmt(HR[h.symbol].hits/HR[h.symbol].n*100,0)+'% ('+HR[h.symbol].n+')':'0/0'}</b></div></div>`:'<div class="fresh">loading forecast…</div>'}
- ${h.option?`<div class="opt">Option: ${h.option.right=='C'?'Call':'Put'} strike ${h.option.strike}, exp ${h.option.expiry} — forecast is for the underlying; strike line shown if in range.</div>`:''}
- <div class="fresh ${stale?'stale':''}">price as of ${ago(q.asof)}${stale?' · market closed or data delayed':''}${d?` · forecast ${d.engine}${d.note?' (fallback: '+d.note+')':''}`:''}</div>
+ ${call||'<div class="fresh" style="margin-top:8px">loading forecast…</div>'}<canvas></canvas>${bar}
+ ${d?`<div class="stats"><div><span>P(up)</span><b class="${d.probUp>=.5?'up':'dn'}">${fmt(d.probUp*100,0)}%</b></div><div><span>P10</span><b>${fmt(d.p10.at(-1))}</b></div><div><span>P90</span><b>${fmt(d.p90.at(-1))}</b></div><div><span>Samples</span><b>${d.samples}</b></div></div>`:''}
+ ${why}${cal}
+ ${h.option?`<div class="opt">Option: ${h.option.right=='C'?'Call':'Put'} strike ${h.option.strike}, exp ${h.option.expiry}. Forecast is for the underlying; strike line drawn when in range.</div>`:''}
+ <div class="fresh ${stale?'stale':''}">${window.SNAPSHOT?'snapshot taken '+new Date(window.SNAPSHOT_AT*1000).toLocaleString()+' · last trade '+ago0(q.asof):'price as of '+ago(q.asof)}${stale?' · market closed or data delayed':''}${d?` · engine: ${d.engine}${d.note?' (fallback; Kronos not loaded)':''}`:''}</div>
  ${F[h.symbol+'!err']?`<div class="err">${F[h.symbol+'!err']}</div>`:''}`;
  if(d)chart(c.querySelector('canvas'),d,h)}
+const ago0=t=>{if(!t)return'n/a';const s=Math.max(0,(window.SNAPSHOT_AT||Date.now()/1000)-t);return s<5400?Math.round(s/60)+'m before':s<172800?Math.round(s/3600)+'h before':Math.round(s/86400)+'d before'};
 function chart(cv,d,h){const r=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*r;cv.height=H*r;const x=cv.getContext('2d');x.scale(r,r);
  const bars=d.bars.slice(-60),n=bars.length,hz=d.horizon,tot=n+hz;
  let lo=Infinity,hi=-Infinity;bars.forEach(b=>{lo=Math.min(lo,b.l);hi=Math.max(hi,b.h)});d.p10.concat(d.p90).forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v)});
@@ -55,7 +74,7 @@ function chart(cv,d,h){const r=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientH
  const x0=n-1,last=bars[n-1].c;
  x.lineWidth=.6;d.paths.forEach(p=>{const e=p[p.length-1];x.strokeStyle=e>=last?'rgba(46,230,182,.14)':'rgba(255,90,106,.14)';x.beginPath();x.moveTo(X(x0),Y(last));p.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke()});
  x.lineWidth=1;[['p10','rgba(255,90,106,.8)'],['p90','rgba(46,230,182,.8)']].forEach(([k,c])=>{x.strokeStyle=c;x.setLineDash([3,3]);x.beginPath();x.moveTo(X(x0),Y(last));d[k].forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke()});x.setLineDash([]);
- x.lineWidth=2;x.strokeStyle='#ffd166';x.beginPath();x.moveTo(X(x0),Y(last));d.median.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke();
+ const A=d.analysis,T=A&&A.scenarios[A.top];if(T&&T.path){x.fillStyle='rgba(255,209,102,.10)';const e=T.path[T.path.length-1],s0=T.from||lo,s1=T.to||hi;x.fillRect(X(tot-1)-6,Y(Math.min(s1,hi)),12,Math.max(2,Y(Math.max(s0,lo))-Y(Math.min(s1,hi))));x.lineWidth=2.5;x.strokeStyle='#ffd166';x.beginPath();x.moveTo(X(x0),Y(last));T.path.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke();x.fillStyle='#ffd166';x.beginPath();x.arc(X(tot-1),Y(e),3.5,0,7);x.fill()}
  x.fillStyle='#6f8b96';x.font='10px monospace';x.textAlign='left';[hi-pad,(hi+lo)/2,lo+pad].forEach(v=>x.fillText(fmt(v),W-50,Y(v)+3));
  x.strokeStyle='#16262f';x.setLineDash([2,4]);x.beginPath();x.moveTo(X(x0),0);x.lineTo(X(x0),H);x.stroke();x.setLineDash([]);
  if(h.option&&h.option.strike>lo&&h.option.strike<hi){x.strokeStyle='#ffb000';x.setLineDash([6,3]);x.beginPath();x.moveTo(0,Y(h.option.strike));x.lineTo(W-55,Y(h.option.strike));x.stroke();x.setLineDash([]);x.fillStyle='#ffb000';x.fillText('strike '+h.option.strike,8,Y(h.option.strike)-3)}}
