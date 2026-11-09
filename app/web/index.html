@@ -1,88 +1,124 @@
 <!doctype html>
-<html lang="en" style="color-scheme:dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Holdings Forecast</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-:root{--bg:#070d12;--panel:#0b141b;--line:#16262f;--tx:#cfe3ea;--dim:#6f8b96;--up:#2ee6b6;--dn:#ff5a6a;--ac:#4cc9f0;--warn:#ffb000;--gold:#ffd166}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px ui-monospace,Menlo,Consolas,monospace}
-header{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-h1{font-size:14px;margin:0;letter-spacing:.1em;color:var(--ac)}.pill{border:1px solid var(--line);padding:2px 8px;border-radius:99px;color:var(--dim)}
-.pill.ro{color:var(--warn);border-color:var(--warn)}
-nav{display:flex;gap:4px;padding:8px 16px;overflow-x:auto;border-bottom:1px solid var(--line)}
-nav button{background:none;border:1px solid var(--line);color:var(--dim);padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;font:inherit}
-nav button.on{color:var(--bg);background:var(--ac);border-color:var(--ac)}
-main{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:12px;padding:16px}
-@media(max-width:520px){main{grid-template-columns:1fr;padding:12px 16px}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
-.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.sym{font-size:16px;font-weight:700}.nm{color:var(--dim);font-size:11px}
-.px{font-size:20px;font-weight:700}.up{color:var(--up)}.dn{color:var(--dn)}
-canvas{width:100%;height:200px;display:block;margin:8px 0}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.stats div{border-top:1px solid var(--line);padding-top:4px}
-.stats b{display:block;font-size:13px}.stats span{color:var(--dim);font-size:10px;text-transform:uppercase}
-.fresh{font-size:11px;color:var(--dim)}.fresh.stale{color:var(--warn)}.err{color:var(--dn);font-size:11px}
-.ctl{margin-left:auto;display:flex;gap:6px}.ctl button{background:none;border:1px solid var(--line);color:var(--dim);padding:3px 8px;border-radius:5px;cursor:pointer;font:inherit}.ctl button.on{color:var(--ac);border-color:var(--ac)}
-.opt{color:var(--warn);font-size:11px}
-.call{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:8px;padding:8px 10px;border:1px solid var(--ac);border-radius:6px;background:rgba(76,201,240,.07)}
-.call .k{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}.call .v{font-size:15px;font-weight:700}
-.call .pr{font-size:22px;font-weight:700;color:var(--gold)}.call .cf{font-size:10px;color:var(--dim);text-align:right}
-.sbar{display:flex;height:22px;gap:2px;margin:8px 0 2px}.sbar div{display:flex;align-items:center;justify-content:center;font-size:10px;background:#12222b;color:var(--dim);border-radius:3px;min-width:0;overflow:hidden}
-.sbar div.top{background:var(--gold);color:#1a1300;font-weight:700}
-.slab{display:flex;gap:2px;font-size:9px;color:var(--dim)}.slab span{text-align:center;min-width:0;overflow:hidden;white-space:nowrap}
-.why,.evt{font-size:11px;color:var(--dim);margin-top:6px;line-height:1.45}.evt{color:var(--warn)}
-.cal{font-size:11px;color:var(--dim);margin-top:4px}
-
+/* Layout: paper page; a dark swarm strip on top, then one tab per asset group, one card per holding with a dark forecast panel inside. Same visual language as Paper Trader and The Desk. */
+:root{--bg:#f1efe8;--paper:#faf8f2;--ink:#17160f;--mute:#6b6759;--line:#d9d4c4;--gold:#b07d1c;--goldSoft:#f0e6cc;--up:#1f8a5b;--dn:#b3372f;--warn:#b7791f;--cond:#2f5fbf;
+--panel:#0f0f0c;--panelInk:#ece8da;--panelMute:#8d8a7b;
+--disp:'Bricolage Grotesque',Georgia,serif;--sans:'IBM Plex Sans',system-ui,sans-serif;--mono:'IBM Plex Mono',ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12110c;--paper:#1a1913;--ink:#efeadb;--mute:#9a9585;--line:#2e2c22;--gold:#d9a441;--goldSoft:#2c2514;--up:#3ec99a;--dn:#f27d73;--warn:#e0a23c;--cond:#7aa2ff;--panel:#080806;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12110c;--paper:#1a1913;--ink:#efeadb;--mute:#9a9585;--line:#2e2c22;--gold:#d9a441;--goldSoft:#2c2514;--up:#3ec99a;--dn:#f27d73;--warn:#e0a23c;--cond:#7aa2ff;--panel:#080806;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.5;padding-block:24px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.eyebrow{font:500 11px var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--mute)}
+h1{font-family:var(--disp);font-weight:800;font-size:clamp(38px,8vw,68px);line-height:.95;letter-spacing:-.03em;margin:6px 0 0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--gold)}
+.lede{max-width:64ch;color:var(--mute);font-size:15px;margin:10px 0 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{font:500 12px var(--mono);border:1px solid var(--line);background:var(--paper);padding:5px 10px;border-radius:99px}.chip b{color:var(--gold);font-weight:500}.chip.ro{color:var(--warn);border-color:var(--warn)}
+.panel{background:var(--panel);color:var(--panelInk);border-radius:10px;border:1px solid #2a2820}
+.swarm{padding:14px;display:flex;flex-direction:column;gap:10px}
+.pcap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 14px;font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--panelMute)}.pcap b{color:#d9a441;font-weight:500}
+.bots{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.bot{border:1px solid #2a2820;border-radius:8px;padding:8px 10px;font-size:12.5px;min-width:0}
+.bot .n{display:flex;justify-content:space-between;gap:8px;font-weight:600}.bot p{margin:3px 0 0;color:var(--panelMute)}
+.vd{font:500 10.5px var(--mono);letter-spacing:.05em;text-transform:uppercase}.vd.pro{color:#3ec99a}.vd.con{color:#f27d73}.vd.neutral{color:#8d8a7b}
+.dec{font-size:13px;border-left:3px solid #d9a441;padding-left:10px}
+nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+nav button,.seg button{font:500 12px var(--mono);background:var(--paper);border:1px solid var(--line);color:var(--mute);padding:7px 12px;border-radius:99px;cursor:pointer;white-space:nowrap}
+nav button.on,.seg button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+nav button:focus-visible,.seg button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.bar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}.seg{display:flex;gap:6px}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(480px,1fr));gap:16px}
+@media(max-width:560px){main{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.sym{font:800 26px var(--disp);letter-spacing:-.02em;line-height:1}.nm{color:var(--mute);font-size:12px;margin-top:3px}
+.px{font:800 24px var(--disp);letter-spacing:-.02em;text-align:right;font-variant-numeric:tabular-nums}.px small{font:500 11px var(--mono);color:var(--mute)}.chg{font:500 12px var(--mono);text-align:right}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.call{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--gold);background:var(--goldSoft);border-radius:10px;padding:12px 14px}
+.call .big{font:800 clamp(24px,4vw,32px) var(--disp);letter-spacing:-.025em;line-height:1.05;margin:2px 0}
+.call .rng{font:500 12px var(--mono);color:var(--mute)}
+.pct{font:800 44px var(--disp);letter-spacing:-.04em;line-height:1;color:var(--gold);text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;font:500 11px var(--mono);padding:2px 8px;border-radius:99px;border:1px solid currentColor;margin-top:4px}
+.tag.s3{color:var(--up)}.tag.s2{color:var(--gold)}.tag.s1{color:var(--mute)}
+.sum{margin:0;color:var(--ink);font-size:14px;max-width:62ch}
+.cv{padding:8px 8px 6px}canvas{width:100%;height:210px;display:block}
+.sbar{display:flex;height:24px;gap:3px}.sbar div{display:flex;align-items:center;justify-content:center;font:500 11px var(--mono);background:var(--line);color:var(--mute);border-radius:4px;min-width:0;overflow:hidden}.sbar div.top{background:var(--gold);color:#17160f;font-weight:500}
+.slab{display:flex;gap:3px;font:500 10px var(--mono);color:var(--mute);margin-top:-6px}.slab span{text-align:center;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:clip}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}.facts div{border-top:1px solid var(--line);padding-top:5px}.facts span{display:block;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}.facts b{font:700 15px var(--disp);font-variant-numeric:tabular-nums}
+.note{background:var(--bg);border-radius:8px;padding:8px 10px;font-size:12.5px;color:var(--mute)}.note b{color:var(--ink)}
+.note.evt{background:var(--goldSoft);color:var(--ink)}
+details{font-size:12.5px;color:var(--mute)}summary{cursor:pointer;font:500 11px var(--mono);letter-spacing:.05em;text-transform:uppercase}
+table{border-collapse:collapse;width:100%;margin-top:6px;font-variant-numeric:tabular-nums}th,td{padding:3px 6px;text-align:right;border-bottom:1px solid var(--line);font-size:12px}th:first-child,td:first-child{text-align:left}
+.fresh{font:500 11px var(--mono);color:var(--mute)}.fresh.stale{color:var(--warn)}.err{color:var(--dn);font-size:12px}
+.ctl .seg button{padding:6px 12px}
 </style></head><body>
-<header><h1>HOLDINGS FORECAST</h1><span class="pill" id="eng">engine…</span><span class="pill ro">READ-ONLY · NO ORDERS</span>
-<span class="pill" id="clock"></span>
-<div class="ctl"><button data-i="1h" class="on">1h bars</button><button data-i="1d">daily bars</button></div></header>
-<nav id="tabs"></nav><main id="main"></main>
+<div class="wrap">
+<header>
+ <div class="eyebrow">Read-only · no orders · forecasts, not advice</div>
+ <h1>Holdings <em>forecast</em></h1>
+ <p class="lede">One call per position: the single most likely path, how likely it is, and why. Each probability is checked against thousands of walk-forward tests on that holding's own price history.</p>
+ <div class="chips" id="chips"></div>
+</header>
+<section class="panel swarm" id="swarm" hidden></section>
+<div class="bar"><nav id="tabs"></nav><div class="seg ctl"><button data-i="1d" class="on">Daily bars · 10 days</button><button data-i="1h">Hourly bars · 24 hours</button></div></div>
+<main id="main"></main>
+</div>
 <script>
-let G={},tab=null,interval='1h',F={},HR={};
+let G={},tab=null,interval='1d',F={},DESK=null;
 const $=s=>document.querySelector(s),fmt=(x,d=2)=>x==null?'–':Number(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=x=>Math.round(x*100)+'%',esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ago=t=>{if(!t)return'no data';const s=Math.max(0,Date.now()/1000-t);return s<90?Math.round(s)+'s ago':s<5400?Math.round(s/60)+'m ago':s<172800?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago'};
+const ago0=t=>{if(!t)return'n/a';const s=Math.max(0,(window.SNAPSHOT_AT||Date.now()/1000)-t);return s<5400?Math.round(s/60)+'m before':s<172800?Math.round(s/3600)+'h before':Math.round(s/86400)+'d before'};
 async function j(u){if(window.SNAPSHOT){const d=window.SNAPSHOT[u];if(!d)throw new Error('not in snapshot');return d}const r=await fetch(u);const d=await r.json();if(d.error)throw new Error(d.error);return d}
 document.querySelectorAll('.ctl button').forEach(b=>b.onclick=()=>{interval=b.dataset.i;document.querySelectorAll('.ctl button').forEach(x=>x.classList.toggle('on',x==b));F={};render();loadForecasts()});
-function tabs(){const n=$('#tabs');n.innerHTML='';Object.keys(G).sort().forEach(g=>{const b=document.createElement('button');b.textContent=`${g} (${G[g].length})`;b.className=g==tab?'on':'';b.onclick=()=>{tab=g;tabs();render();loadForecasts()};n.append(b)})}
-function render(){const m=$('#main');m.innerHTML='';(G[tab]||[]).forEach(h=>{const c=document.createElement('div');c.className='card';c.id='c-'+h.symbol.replace(/\W/g,'_');m.append(c);draw(h)})}
+function tabs(){const n=$('#tabs');n.innerHTML='';Object.keys(G).sort().forEach(g=>{const b=document.createElement('button');b.textContent=`${g} · ${G[g].length}`;b.className=g==tab?'on':'';b.onclick=()=>{tab=g;tabs();render();loadForecasts()};n.append(b)})}
+function render(){const m=$('#main');m.innerHTML='';(G[tab]||[]).forEach(h=>{const c=document.createElement('article');c.className='card';c.id='c-'+h.symbol.replace(/\W/g,'_');m.append(c);draw(h)})}
+function swarm(){const D=DESK,s=$('#swarm');if(!D){s.hidden=true;return}s.hidden=false;
+ s.innerHTML=`<div class="pcap"><span>Research swarm · from your Paper Trader build</span><span>${esc(D.asof)}</span></div><div class="dec"><b>Regime.</b> ${esc(D.regime)}<br><b>Decision.</b> ${esc(D.decision)}</div><div class="bots">${D.bots.map(b=>`<div class="bot"><div class="n"><span>${esc(b.name)}</span><span class="vd ${b.verdict}">${b.verdict}</span></div><p>${esc(b.line)}</p></div>`).join('')}</div>`}
 function draw(h){const c=document.getElementById('c-'+h.symbol.replace(/\W/g,'_'));if(!c)return;const d=F[h.symbol],q=d&&d.quote||h,A=d&&d.analysis;
- const px=q.price,pc=q.prevClose||h.prevClose,chg=pc?(px/pc-1)*100:null,age=q.asof?Date.now()/1000-q.asof:1e9;
+ const px=q.price,pc0=q.prevClose||h.prevClose,chg=pc0?(px/pc0-1)*100:null,age=q.asof?Date.now()/1000-q.asof:1e9;
  const stale=window.SNAPSHOT?false:age>(interval=='1h'?1200:90000);
- const pct=x=>fmt(x*100,0)+'%';
- let call='',bar='',why='',cal='';
- if(A){const T=A.scenarios[A.top],rng=(T.from?fmt(T.from):'…')+' – '+(T.to?fmt(T.to):'…');
-  call=`<div class="call"><div><div class="k">Most likely · next ${d.horizon} ${interval=='1h'?'hours':'days'}</div><div class="v">${A.confidence=='Toss-up'?'No clear favorite':T.name}</div><div class="k">${A.confidence=='Toss-up'?'Slight lean: '+T.name+' · ':''}${h.currency} ${rng}</div></div><div style="text-align:right"><div class="pr">${pct(A.topProb)}</div><div class="cf">${A.confidence}</div></div></div>`;
-  bar=`<div class="sbar">${A.scenarios.map((s,i)=>`<div class="${i==A.top?'top':''}" style="flex:${Math.max(s.prob,.04)}">${s.prob>=.08?pct(s.prob):''}</div>`).join('')}</div><div class="slab">${A.scenarios.map(s=>`<span style="flex:${Math.max(s.prob,.04)}">${s.prob>=.12?s.name.split(' ').pop():''}</span>`).join('')}</div>`;
-  const e=A.evidence;why=`<div class="why">Basis: model paths (${d.samples}) tilted by trend ${e.trend>=0?'+':''}${e.trend} and RSI ${e.rsi}${e.reversion?' (stretched, mean-reversion nudge)':''}. Gold line is the average path inside the favoured scenario, not the median.</div>`;
-  if(A.events.length)why+=`<div class="evt">⚠ Event risk in window (confidence reduced): ${A.events.map(x=>x.date.slice(5)+' '+x.label+(x.verified?'':' [unverified]')).join(' · ')}</div>`;
-  const k=A.calibration;cal=k?`<div class="cal">Track record of this method on ${h.symbol}: favoured scenario happened ${pct(k.realized)} of ${k.n} past calls (model claimed ${pct(k.stated)}; always guessing "range-bound" scores ${pct(k.alwaysRange)}). Displayed % is already scaled to that record.</div>`:''}
- c.innerHTML=`<div class="top"><div><span class="sym">${h.symbol}</span><div class="nm">${h.name}</div></div><div style="text-align:right"><div class="px">${fmt(px)} <small>${h.currency}</small></div><div class="${chg>=0?'up':'dn'}">${chg==null?'':(chg>=0?'+':'')+fmt(chg)+'%'}</div></div></div>
- ${call||'<div class="fresh" style="margin-top:8px">loading forecast…</div>'}<canvas></canvas>${bar}
- ${d?`<div class="stats"><div><span>P(up)</span><b class="${d.probUp>=.5?'up':'dn'}">${fmt(d.probUp*100,0)}%</b></div><div><span>P10</span><b>${fmt(d.p10.at(-1))}</b></div><div><span>P90</span><b>${fmt(d.p90.at(-1))}</b></div><div><span>Samples</span><b>${d.samples}</b></div></div>`:''}
- ${why}${cal}
- ${h.option?`<div class="opt">Option: ${h.option.right=='C'?'Call':'Put'} strike ${h.option.strike}, exp ${h.option.expiry}. Forecast is for the underlying; strike line drawn when in range.</div>`:''}
- <div class="fresh ${stale?'stale':''}">${window.SNAPSHOT?'snapshot taken '+new Date(window.SNAPSHOT_AT*1000).toLocaleString()+' · last trade '+ago0(q.asof):'price as of '+ago(q.asof)}${stale?' · market closed or data delayed':''}${d?` · engine: ${d.engine}${d.note?' (fallback; Kronos not loaded)':''}`:''}</div>
- ${F[h.symbol+'!err']?`<div class="err">${F[h.symbol+'!err']}</div>`:''}`;
+ let call='<div class="fresh">loading forecast…</div>',bar='',facts='',notes='',cal='';
+ if(A){const T=A.scenarios[A.top],rng=(T.from?fmt(T.from):'below')+(T.to?' to '+fmt(T.to):' and up');
+  const lvl=A.confidence.startsWith('Strong')?3:A.confidence.startsWith('Mod')?2:1;
+  call=`<div class="call"><div><div class="eyebrow">Most likely · next ${d.horizon} ${interval=='1h'?'hours':'trading days'}</div><div class="big">${T.name}</div><div class="rng">${h.currency} ${rng}</div></div><div><div class="pct">${pct(A.topProb)}</div><div style="text-align:right"><span class="tag s${lvl}">${A.confidence}</span></div></div></div><p class="sum">${esc(A.summary)}</p>`;
+  bar=`<div class="sbar">${A.scenarios.map((s,i)=>`<div class="${i==A.top?'top':''}" style="flex:${Math.max(s.prob,.05)}">${s.prob>=.09?pct(s.prob):''}</div>`).join('')}</div><div class="slab">${A.scenarios.map(s=>`<span style="flex:${Math.max(s.prob,.05)}">${s.prob>=.13?s.name:''}</span>`).join('')}</div>`;
+  facts=`<div class="facts"><div><span>Chance of ending up</span><b class="${d.probUp>=.5?'up':'dn'}">${pct(d.probUp)}</b></div><div><span>Likely low (P10)</span><b>${fmt(d.p10.at(-1))}</b></div><div><span>Likely high (P90)</span><b>${fmt(d.p90.at(-1))}</b></div><div><span>Simulated paths</span><b>${d.samples}</b></div></div>`;
+  const D=DESK&&DESK.notes&&DESK.notes[h.symbol.split(' ')[0]];
+  if(D)notes+=`<div class="note"><b>Desk view</b> (${esc(D.src)}): ${esc(D.text)}</div>`;
+  if(A.events.length)notes+=`<div class="note evt"><b>Event risk in this window:</b> ${A.events.map(x=>esc(x.date.slice(5)+' · '+x.label+(x.verified?'':' [unverified]'))).join('<br>')}</div>`;
+  const k=A.calibration;if(k)cal=`<details><summary>Backtest · ${k.n.toLocaleString()} walk-forward tests (~${k.years} yrs)</summary><div class="note" style="margin-top:6px">At every bar in ${k.years} years of history the method saw only the past, made its call, then was scored on what happened ${d.horizon} bars later. The favoured scenario came true <b>${pct(k.realized)}</b> of the time (it claimed ${pct(k.stated)}); a guess from history alone scores ${pct(k.bestConstant)}. Skill vs that baseline: <b>${k.skill>=0?'+':''}${(k.skill*100).toFixed(1)}%</b>. The % above is already mapped to what each confidence band really delivered.</div><table><tr><th>Model said</th><th>Tests</th><th>Came true</th></tr>${k.reliability.map(r=>`<tr><td>${pct(r.stated)}</td><td>${r.n}</td><td>${pct(r.realized)}</td></tr>`).join('')}</table></details>`}
+ c.innerHTML=`<div class="top"><div><div class="sym">${esc(h.symbol)}</div><div class="nm">${esc(h.name)}</div></div><div><div class="px">${fmt(px)} <small>${h.currency}</small></div><div class="chg ${chg>=0?'up':'dn'}">${chg==null?'':(chg>=0?'+':'')+fmt(chg)+'%'}</div></div></div>
+ ${call}<div class="panel cv"><canvas></canvas></div>${bar}${facts}${notes}
+ ${h.option?`<div class="note"><b>Option:</b> ${h.option.right=='C'?'Call':'Put'}, strike ${h.option.strike}, expires ${h.option.expiry}. The forecast is for the underlying stock; the strike is drawn when in range.</div>`:''}
+ ${cal}
+ <div class="fresh ${stale?'stale':''}">${window.SNAPSHOT?'snapshot '+new Date(window.SNAPSHOT_AT*1000).toLocaleString()+' · last trade '+ago0(q.asof):'price as of '+ago(q.asof)}${stale?' · market closed or data delayed':''}${d?` · engine: ${d.engine}${d.note?' (fallback until Kronos is installed)':''}`:''}</div>
+ ${F[h.symbol+'!err']?`<div class="err">${esc(F[h.symbol+'!err'])}</div>`:''}`;
  if(d)chart(c.querySelector('canvas'),d,h)}
-const ago0=t=>{if(!t)return'n/a';const s=Math.max(0,(window.SNAPSHOT_AT||Date.now()/1000)-t);return s<5400?Math.round(s/60)+'m before':s<172800?Math.round(s/3600)+'h before':Math.round(s/86400)+'d before'};
 function chart(cv,d,h){const r=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*r;cv.height=H*r;const x=cv.getContext('2d');x.scale(r,r);
  const bars=d.bars.slice(-60),n=bars.length,hz=d.horizon,tot=n+hz;
  let lo=Infinity,hi=-Infinity;bars.forEach(b=>{lo=Math.min(lo,b.l);hi=Math.max(hi,b.h)});d.p10.concat(d.p90).forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v)});
- if(h.option&&h.option.strike<hi*1.2&&h.option.strike>lo*.8){lo=Math.min(lo,h.option.strike);hi=Math.max(hi,h.option.strike)}
- const pad=(hi-lo)*.06;lo-=pad;hi+=pad;const X=i=>8+i/(tot-1)*(W-60),Y=v=>H-8-(v-lo)/(hi-lo)*(H-16);
- const bw=Math.max(1.5,(W-60)/tot*.6);
- bars.forEach((b,i)=>{const up=b.c>=b.o;x.strokeStyle=x.fillStyle=up?'#2ee6b6':'#ff5a6a';x.beginPath();x.moveTo(X(i),Y(b.h));x.lineTo(X(i),Y(b.l));x.stroke();x.fillRect(X(i)-bw/2,Math.min(Y(b.o),Y(b.c)),bw,Math.max(1,Math.abs(Y(b.o)-Y(b.c))))});
- const x0=n-1,last=bars[n-1].c;
- x.lineWidth=.6;d.paths.forEach(p=>{const e=p[p.length-1];x.strokeStyle=e>=last?'rgba(46,230,182,.14)':'rgba(255,90,106,.14)';x.beginPath();x.moveTo(X(x0),Y(last));p.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke()});
- x.lineWidth=1;[['p10','rgba(255,90,106,.8)'],['p90','rgba(46,230,182,.8)']].forEach(([k,c])=>{x.strokeStyle=c;x.setLineDash([3,3]);x.beginPath();x.moveTo(X(x0),Y(last));d[k].forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke()});x.setLineDash([]);
- const A=d.analysis,T=A&&A.scenarios[A.top];if(T&&T.path){x.fillStyle='rgba(255,209,102,.10)';const e=T.path[T.path.length-1],s0=T.from||lo,s1=T.to||hi;x.fillRect(X(tot-1)-6,Y(Math.min(s1,hi)),12,Math.max(2,Y(Math.max(s0,lo))-Y(Math.min(s1,hi))));x.lineWidth=2.5;x.strokeStyle='#ffd166';x.beginPath();x.moveTo(X(x0),Y(last));T.path.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke();x.fillStyle='#ffd166';x.beginPath();x.arc(X(tot-1),Y(e),3.5,0,7);x.fill()}
- x.fillStyle='#6f8b96';x.font='10px monospace';x.textAlign='left';[hi-pad,(hi+lo)/2,lo+pad].forEach(v=>x.fillText(fmt(v),W-50,Y(v)+3));
- x.strokeStyle='#16262f';x.setLineDash([2,4]);x.beginPath();x.moveTo(X(x0),0);x.lineTo(X(x0),H);x.stroke();x.setLineDash([]);
- if(h.option&&h.option.strike>lo&&h.option.strike<hi){x.strokeStyle='#ffb000';x.setLineDash([6,3]);x.beginPath();x.moveTo(0,Y(h.option.strike));x.lineTo(W-55,Y(h.option.strike));x.stroke();x.setLineDash([]);x.fillStyle='#ffb000';x.fillText('strike '+h.option.strike,8,Y(h.option.strike)-3)}}
-async function loadForecasts(){const hs=G[tab]||[],t=tab;await Promise.all(hs.map(async h=>{try{F[h.symbol]=await j(`/api/forecast?sym=${encodeURIComponent(h.symbol)}&interval=${interval}&horizon=${interval=='1h'?24:10}`);delete F[h.symbol+'!err'];
-  j(`/api/hitrate?sym=${encodeURIComponent(h.symbol)}&interval=${interval}`).then(r=>{HR[h.symbol]=r}).catch(()=>{})}catch(e){F[h.symbol+'!err']=e.message}
+ if(h.option&&h.option.strike<hi*1.25&&h.option.strike>lo*.75){lo=Math.min(lo,h.option.strike);hi=Math.max(hi,h.option.strike)}
+ const pad=(hi-lo)*.06;lo-=pad;hi+=pad;const X=i=>8+i/(tot-1)*(W-64),Y=v=>H-10-(v-lo)/(hi-lo)*(H-20),bw=Math.max(1.5,(W-64)/tot*.6);
+ x.strokeStyle='#1d1c16';x.lineWidth=1;for(let i=0;i<=4;i++){const y=10+i*(H-20)/4;x.beginPath();x.moveTo(0,y);x.lineTo(W-52,y);x.stroke()}
+ bars.forEach((b,i)=>{const up=b.c>=b.o;x.strokeStyle=x.fillStyle=up?'#3ec99a':'#f27d73';x.beginPath();x.moveTo(X(i),Y(b.h));x.lineTo(X(i),Y(b.l));x.stroke();x.fillRect(X(i)-bw/2,Math.min(Y(b.o),Y(b.c)),bw,Math.max(1,Math.abs(Y(b.o)-Y(b.c))))});
+ const x0=n-1,last=bars[n-1].c;x.lineWidth=.6;
+ d.paths.forEach(p=>{x.strokeStyle=p[p.length-1]>=last?'rgba(62,201,154,.12)':'rgba(242,125,115,.12)';x.beginPath();x.moveTo(X(x0),Y(last));p.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke()});
+ x.lineWidth=1;[['p10','rgba(242,125,115,.75)'],['p90','rgba(62,201,154,.75)']].forEach(([k,c])=>{x.strokeStyle=c;x.setLineDash([3,3]);x.beginPath();x.moveTo(X(x0),Y(last));d[k].forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke()});x.setLineDash([]);
+ const A=d.analysis,T=A&&A.scenarios[A.top];
+ if(T&&T.path){const e=T.path[T.path.length-1],s1=Math.min(T.to||hi,hi),s0=Math.max(T.from||lo,lo);x.fillStyle='rgba(217,164,65,.14)';x.fillRect(X(tot-1)-8,Y(s1),16,Math.max(2,Y(s0)-Y(s1)));
+  x.lineWidth=2.8;x.strokeStyle='#d9a441';x.beginPath();x.moveTo(X(x0),Y(last));T.path.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke();x.fillStyle='#d9a441';x.beginPath();x.arc(X(tot-1),Y(e),4,0,7);x.fill()}
+ x.fillStyle='#8d8a7b';x.font='10px IBM Plex Mono,monospace';x.textAlign='left';[hi-pad,(hi+lo)/2,lo+pad].forEach(v=>x.fillText(fmt(v),W-50,Y(v)+3));
+ x.strokeStyle='#3a382d';x.setLineDash([2,4]);x.beginPath();x.moveTo(X(x0),0);x.lineTo(X(x0),H);x.stroke();x.setLineDash([]);
+ if(h.option&&h.option.strike>lo&&h.option.strike<hi){x.strokeStyle='#d9a441';x.setLineDash([6,3]);x.beginPath();x.moveTo(0,Y(h.option.strike));x.lineTo(W-55,Y(h.option.strike));x.stroke();x.setLineDash([]);x.fillStyle='#d9a441';x.fillText('strike '+h.option.strike,8,Y(h.option.strike)-4)}}
+async function loadForecasts(){const hs=G[tab]||[],t=tab,hz=interval=='1h'?24:10;await Promise.all(hs.map(async h=>{try{F[h.symbol]=await j(`/api/forecast?sym=${encodeURIComponent(h.symbol)}&interval=${interval}&horizon=${hz}`);delete F[h.symbol+'!err']}catch(e){F[h.symbol+'!err']=e.message}
   if(t==tab)draw(h)}))}
-async function refreshHoldings(){try{const d=await j('/api/holdings');G=d.groups;$('#eng').textContent='engine: '+d.engine+(d.note?' (Kronos unavailable → fallback)':'');
-  if(!tab||!G[tab])tab=Object.keys(G).sort()[0];tabs();if(!Object.keys(F).length){render();loadForecasts()}else(G[tab]||[]).forEach(draw)}catch(e){$('#main').innerHTML='<div class="err">'+e.message+'</div>'}}
-setInterval(()=>$('#clock').textContent=new Date().toLocaleTimeString()+' local',1000);
+async function refreshHoldings(){try{const d=await j('/api/holdings');G=d.groups;DESK=d.desk;
+  $('#chips').innerHTML=`<span class="chip ro">Read-only</span><span class="chip">Engine <b>${esc(d.engine)}</b></span><span class="chip">Holdings <b>${Object.values(G).reduce((a,v)=>a+v.length,0)}</b></span><span class="chip">Groups <b>${Object.keys(G).length}</b></span>`;
+  swarm();if(!tab||!G[tab])tab=Object.keys(G).sort()[0];tabs();if(!Object.keys(F).length){render();loadForecasts()}else(G[tab]||[]).forEach(draw)}catch(e){$('#main').innerHTML='<div class="err">'+esc(e.message)+'</div>'}}
 refreshHoldings();setInterval(refreshHoldings,10000);setInterval(()=>{if(tab)loadForecasts()},30000);
 </script></body></html>

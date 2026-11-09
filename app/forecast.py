@@ -67,7 +67,8 @@ def forecast(bars, horizon=24, n=400, step="1h"):
 # ---------------------------------------------------------------------------
 # Scenario analysis: "most likely outcome" from holistic evidence, not the median.
 # ---------------------------------------------------------------------------
-SCEN = ["Sharp drop", "Grind lower", "Range-bound", "Grind higher", "Sharp rally"]
+SCEN = ["Selloff", "Drifts lower", "Sideways", "Drifts higher", "Rally"]
+VERB = ["sells off", "drifts lower", "moves sideways", "drifts higher", "rallies"]
 EDGES = np.array([-1.0, -0.35, 0.35, 1.0])      # in units of sigma_h (typical move over the horizon)
 DIRS = np.array([-1, -.5, 0, .5, 1.0])
 
@@ -101,36 +102,72 @@ def scenario_probs(paths, closes, horizon, tilt=0.0, event_shrink=0.0):
     if event_shrink: p = (1 - event_shrink) * p + event_shrink / 5
     return p, b, s
 
-def analyse(paths, closes, horizon, events=None, calib=None):
+def analyse(paths, closes, horizon, events=None, calib=None, sym="", unit="hours"):
     paths = np.asarray(paths); closes = np.asarray(closes, float); last = closes[-1]
     ev = evidence(closes, horizon)
-    shrink = 0.15 if events else 0.0
-    p, b, s = scenario_probs(paths, closes, horizon, ev["tilt"], shrink)
-    k = int(p.argmax()); sc = []
+    p, b, s = scenario_probs(paths, closes, horizon, ev["tilt"], 0.15 if events else 0.0)
+    k = int(p.argmax()); raw = float(p[k]); top = _calibrated_top(raw, calib)
+    if events: top = 0.85 * top + 0.15 * 0.2          # event risk pulls the call toward "anyone's guess"
+    rest = np.delete(p, k); rest = rest / rest.sum() * (1 - top)
+    pc = np.insert(rest, k, top)                      # headline and bar now agree
+    sc = []
     for i in range(5):
-        m = b == i
-        term = paths[m, -1] if m.any() else np.array([last * math.exp(s * (np.r_[-1.6, EDGES + 0, 1.6][i] if False else 0))])
-        lo_z = -np.inf if i == 0 else EDGES[i - 1]; hi_z = np.inf if i == 4 else EDGES[i]
-        sc.append({"name": SCEN[i], "prob": round(float(p[i]), 4), "n": int(m.sum()),
+        m = b == i; lo_z = -np.inf if i == 0 else EDGES[i - 1]; hi_z = np.inf if i == 4 else EDGES[i]
+        sc.append({"name": SCEN[i], "prob": round(float(pc[i]), 4), "n": int(m.sum()),
                    "from": None if i == 0 else round(last * math.exp(lo_z * s), 4),
                    "to": None if i == 4 else round(last * math.exp(hi_z * s), 4),
                    "path": np.round(paths[m].mean(axis=0), 4).tolist() if m.any() else None})
-    top = float(p[k])
-    raw = top
-    if calib and calib.get("stated"):       # shrink to what past calls actually delivered
-        top = top * float(np.clip(calib["realized"] / calib["stated"], 0.6, 1.2))
-    conf = "Clear favorite" if top >= 0.45 else "Lean" if top >= 0.32 else "Toss-up"
-    return {"scenarios": sc, "top": k, "topName": SCEN[k], "topProb": round(top, 4), "topProbRaw": round(raw, 4), "confidence": conf,
-            "evidence": ev, "events": events or [], "calibration": calib}
+    conf = "Strong signal" if top >= 0.45 else "Moderate signal" if top >= 0.32 else "Weak signal"
+    skill = (calib or {}).get("skill")
+    T = sc[k]; rng = f"{T['from'] or 0:.2f}" if T["from"] else "below"
+    why = []
+    if ev["trend"] <= -0.25: why.append("trend is down")
+    elif ev["trend"] >= 0.25: why.append("trend is up")
+    if ev["rsi"] < 35: why.append("it looks oversold")
+    elif ev["rsi"] > 65: why.append("it looks stretched")
+    if not why: why.append("no strong trend or stretch")
+    lead = f"{sym or 'It'} most likely {VERB[k]} over the next {horizon} {unit}, about a {round(top*100)}% chance"
+    summ = lead + f" ({', '.join(why)})."
+    if events: summ += " Event risk in the window lowers confidence."
+    if calib and calib.get("n"):
+        verdict = "slightly better than" if (skill or 0) > 0.003 else "no better than"
+        summ += f" Over {calib['n']:,} past walk-forward tests this method has been {verdict} guessing from history alone."
+    return {"scenarios": sc, "top": k, "topName": SCEN[k], "topProb": round(float(top), 4), "topProbRaw": round(raw, 4),
+            "confidence": conf, "summary": summ, "evidence": ev, "events": events or [], "calibration": calib}
 
-def calibrate(closes, horizon, step=6, n=150, start=150):
-    """Walk-forward check of the same pipeline: did the favoured scenario actually happen?"""
-    c = np.asarray(closes, float); hits = []; probs = []; base = []
+def calibrate(closes, horizon, step=1, n=300, start=250, per_year=252):
+    """Deep walk-forward backtest. At EVERY bar t (>= start) uses only data up to t, runs the same pipeline
+    (bootstrapped paths -> evidence tilt -> scenario probabilities), then scores against what happened
+    `horizon` bars later. Returns hit-rate of the favoured scenario, a reliability table, and log-loss skill
+    versus a baseline that only knows the historical scenario frequencies (expanding window)."""
+    c = np.asarray(closes, float); P = []; Real = []
     for t in range(start, len(c) - horizon, step):
         hist = c[: t + 1]; paths = _mc(hist, horizon, n)
-        ev = evidence(hist, horizon); p, _, s = scenario_probs(paths, hist, horizon, ev["tilt"])
-        k = int(p.argmax()); z = math.log(c[t + horizon] / c[t]) / s
-        real = int(np.digitize(z, EDGES)); hits.append(real == k); probs.append(p[k]); base.append(real == 2)
-    if len(hits) < 12: return None
-    return {"n": len(hits), "realized": round(float(np.mean(hits)), 3), "stated": round(float(np.mean(probs)), 3),
-            "alwaysRange": round(float(np.mean(base)), 3)}
+        ev = evidence(hist, horizon); p, _, sg = scenario_probs(paths, hist, horizon, ev["tilt"])
+        P.append(p); Real.append(int(np.digitize(math.log(c[t + horizon] / c[t]) / sg, EDGES)))
+    if len(P) < 60: return None
+    P = np.array(P); R = np.array(Real); top = P.argmax(1); ptop = P.max(1); hit = top == R
+    # baseline: expanding class frequencies (Laplace), no lookahead
+    cnt = np.ones(5); ll_m = ll_b = 0.0
+    for i in range(len(R)):
+        ll_m -= math.log(max(P[i, R[i]], 1e-3)); ll_b -= math.log(cnt[R[i]] / cnt.sum()); cnt[R[i]] += 1
+    edges = [0.0, .25, .30, .35, .40, .50, 1.01]; rel = []
+    for lo, hi in zip(edges[:-1], edges[1:]):
+        m = (ptop >= lo) & (ptop < hi)
+        if m.sum() >= 15: rel.append({"lo": lo, "hi": hi, "n": int(m.sum()), "stated": round(float(ptop[m].mean()), 3), "realized": round(float(hit[m].mean()), 3)})
+    freq = np.bincount(R, minlength=5) / len(R)
+    return {"n": int(len(R)), "years": round(len(R) * step / per_year, 1),
+            "realized": round(float(hit.mean()), 3), "stated": round(float(ptop.mean()), 3),
+            "alwaysRange": round(float(freq[2]), 3), "bestConstant": round(float(freq.max()), 3),
+            "skill": round(1 - ll_m / ll_b, 4), "reliability": rel}
+
+def _calibrated_top(raw, calib):
+    """Map the model's stated top-probability to the frequency it actually delivered in that band."""
+    rel = (calib or {}).get("reliability") or []
+    if not rel: return raw
+    pts = [(r["stated"], r["realized"], r["n"]) for r in rel]
+    if raw <= pts[0][0]: return pts[0][1]
+    if raw >= pts[-1][0]: return pts[-1][1]
+    for (x0, y0, _), (x1, y1, _) in zip(pts, pts[1:]):
+        if x0 <= raw <= x1: return y0 + (y1 - y0) * (raw - x0) / max(x1 - x0, 1e-9)
+    return raw

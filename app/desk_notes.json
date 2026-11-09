@@ -1,0 +1,23 @@
+{
+ "_note": "Pulled by hand from your two existing builds (Paper Trader page, 9 Nov 08:37 UTC swarm; The Desk page, 3 Nov run). Replace with a live feed once the swarm writes to a shared JSON.",
+ "regime": "Fear-tinged chop after Thursday's shock (QQQ -6.5%). Partial rebound faded Friday. CPI Tuesday, December Fed hike heavily priced. US closed until 14:30 UTC.",
+ "asof": "Mon 9 Nov, 08:37 UTC",
+ "decision": "No trade. Seven of eight bots neutral or cautious; QQQ pullback bid at 649 not triggered. Re-check at the US open.",
+ "bots": [
+  {"name":"News scout","verdict":"con","line":"Thin data. NVDA drop unexplained, CPI Tuesday is the binary risk."},
+  {"name":"Filings","verdict":"neutral","line":"Strong results, GOOGL cash burn and capex unresolved."},
+  {"name":"Screener","verdict":"neutral","line":"Europe-only banks and semicap lead; broad beta rebound, no stock edge."},
+  {"name":"Backtester","verdict":"neutral","line":"No edge proven. QQQ's Thursday drop was -6.5%, not -5.6%."},
+  {"name":"Scenario","verdict":"neutral","line":"Fear-tinged chop. Staging half after CPI is cleaner."},
+  {"name":"Technicals","verdict":"neutral","line":"QQQ plan valid: 649 bid gives 3:1, chasing 656 only 1.7:1."},
+  {"name":"Devil's advocate","verdict":"neutral","line":"Buying before CPI risks a stop 2.2% away inside normal volatility."},
+  {"name":"Risk check","verdict":"pro","line":"QQQ $1,500 risks about $49 at 1.7:1. QQQ, NVDA, GOOGL are one correlated bet."}
+ ],
+ "notes": {
+  "QQQ": {"src":"Paper Trader, 9 Nov","text":"Staged plan: buy on a pullback to 649, stop 635, target 691. Chasing 656 is only 1.7:1."},
+  "NVDA": {"src":"The Desk, 3 Nov","text":"Hold into earnings (about 17-18 Nov, date unconfirmed). Pre-market weakness on 9 Nov has no verified cause."},
+  "GOOGL": {"src":"Paper Trader, 9 Nov","text":"Mock account holds it: strong Oct print, stock fell on cash burn. Support 277, resistance 296."},
+  "INTC": {"src":"The Desk, 3 Nov","text":"Hold, no add. Dilution plus a weak Q4 guide."},
+  "TTWO": {"src":"The Desk, 3 Nov","text":"Leave as is. Earnings on 9 Nov after the close; GTA VI launch 19 Nov. Alert below 187.63."}
+ }
+}

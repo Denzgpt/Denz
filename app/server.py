@@ -24,7 +24,9 @@ def api_holdings():
     for h in hs:
         m = metas.get(h["yahoo"], {})
         out.setdefault(g[h["symbol"]], []).append({**h, "price": m.get("price"), "asof": m.get("asof"), "prevClose": m.get("prevClose")})
-    return {"groups": out, "now": int(time.time()), **forecast.engine_status()}
+    try: desk = json.load(open(os.path.join(HERE, "desk_notes.json")))
+    except Exception: desk = None
+    return {"groups": out, "now": int(time.time()), "desk": desk, **forecast.engine_status()}
 
 def api_forecast(sym, interval, horizon):
     hs = {h["symbol"]: h for h in load_holdings()}
@@ -44,10 +46,10 @@ def api_forecast(sym, interval, horizon):
                 f.write(json.dumps({"sym": h["yahoo"], "interval": interval, "t0": bars[-1]["t"], "last": res["last"],
                                     "p10": res["p10"], "p90": res["p90"], "median": res["median"]}) + "\n")
     q = data.quote(h["yahoo"])
-    closes = [b["c"] for b in data.bars(h["yahoo"], interval, "6mo" if interval == "1h" else "2y", ttl=300)[0]]
+    closes = [b["c"] for b in data.bars(h["yahoo"], interval, "730d" if interval == "1h" else "10y", ttl=300)[0]]
     try: cal = calibration(h["yahoo"], interval, horizon)
     except Exception: cal = None
-    an = forecast.analyse(res["_np"], closes, horizon, events_for(sym, bars[-1]["t"], interval, horizon), cal)
+    an = forecast.analyse(res["_np"], closes, horizon, events_for(sym, bars[-1]["t"], interval, horizon), cal, sym, "hours" if interval == "1h" else "trading days")
     return {**{k: v for k, v in res.items() if k != "_np"}, "analysis": an, "bars": bars[-120:], "quote": q, "now": int(time.time()), "currency": meta.get("currency"),
             "option": h.get("option"), "marketState": meta.get("currentTradingPeriod") and "see-asof"}
 
@@ -67,8 +69,15 @@ CAL = {}
 def calibration(yahoo, interval, horizon):
     key = (yahoo, interval, horizon)
     if key not in CAL:
-        bars, _ = data.bars(yahoo, interval, "6mo" if interval == "1h" else "2y", ttl=3600)
-        CAL[key] = forecast.calibrate([b["c"] for b in bars], horizon, step=6 if interval == "1h" else 3)
+        path = os.path.join(HERE, "calibration_cache.json")
+        try: store = json.load(open(path))
+        except Exception: store = {}
+        k = f"{yahoo}|{interval}|{horizon}"
+        if k not in store:
+            bars, _ = data.bars(yahoo, interval, "730d" if interval == "1h" else "10y", ttl=3600)
+            store[k] = forecast.calibrate([b["c"] for b in bars], horizon, step=1, per_year=1638 if interval == "1h" else 252)
+            json.dump(store, open(path, "w"))
+        CAL[key] = store[k]
     return CAL[key]
 
 def api_hitrate(sym, interval):
