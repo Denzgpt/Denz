@@ -9,6 +9,8 @@ def _load_kronos():
     if _kronos["tried"]: return _kronos["pred"]
     _kronos["tried"] = True
     try:
+        if not os.environ.get("USE_KRONOS"):
+            raise RuntimeError("Kronos is installed but off by default: in a 96-test walk-forward it predicted -5.8% on average against 0.0% realised and was heavily overconfident (see README). Set USE_KRONOS=1 to try it.")
         if not os.path.isdir(KRONOS_DIR): raise RuntimeError("Kronos/ not cloned")
         sys.path.insert(0, KRONOS_DIR)
         from model import Kronos, KronosTokenizer, KronosPredictor  # type: ignore
