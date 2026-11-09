@@ -145,6 +145,7 @@ def step(a, kind, t, ctx_bars, ctx_ind_for, earn, S, P, M, U, fx=1.0):
     orders, _ = (playbook_orders if kind == "playbook" else maxroi_orders)(ctx, a, P if kind == "playbook" else M, S)
     a.orders = orders
 
+def B_exists(): return os.path.exists(os.path.join(ST, 'bench.json'))
 def run(replay_from=None, reset=False, now_only=False):
     U = cfg("universe.json"); P = cfg("playbook.json"); M = cfg("maxroi.json"); S = J(os.environ["TRADER_SWARM"]) if os.environ.get("TRADER_SWARM") else cfg("swarm.json"); earn = {k: v for k, v in cfg("earnings.json").items() if not k.startswith("_")}
     syms = U["symbols"]; os.makedirs(ST, exist_ok=True)
@@ -162,12 +163,18 @@ def run(replay_from=None, reset=False, now_only=False):
     for k in ("playbook", "maxroi"):
         f = os.path.join(ST, f"{k}.json")
         accts[k] = Account.from_json(J(f)) if (os.path.exists(f) and not reset) else Account(k, U["start_equity"])
+    allts = sorted({b["t"] for s in syms for b in bars5[s]})
+    if not replay_from:                              # first live run: start from NOW, never replay history
+        for a in accts.values():
+            if a.last_ts == 0: a.last_ts = allts[-1]; a.curve = [{"t": iso(allts[-1]), "eq": a.start}]; log(a, allts[-1], f"Account opened with ${a.start:,.0f} paper cash.")
+        if not B_exists(): pass
     t0 = int(dt.datetime.fromisoformat(replay_from + "T00:00:00+00:00").timestamp()) if replay_from else 0
     ts = sorted({b["t"] for s in syms for b in bars5[s]})
     ts = [t for t in ts if t >= t0 and t > min(a.last_ts for a in accts.values())]
     idx = {s: {b["t"]: b for b in bars5[s]} for s in syms}
     bench = {s: {b["t"]: b["c"] for b in bars5[s]} for s in ("SPY", "QQQ")}
     benchf = os.path.join(ST, "bench.json"); B = J(benchf) if (os.path.exists(benchf) and not reset) else {"curve": []}
+    if not B["curve"] and not replay_from and "SPY" in bench: B["curve"].append({"t": iso(allts[-1]), "spy": bench["SPY"].get(allts[-1]), "qqq": bench["QQQ"].get(allts[-1])})
     for t in ts:
         cb = {s: idx[s][t] for s in syms if t in idx[s]}
         for k, a in accts.items():
