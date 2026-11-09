@@ -19,8 +19,8 @@ try:
 except Exception as e: print("forecast app unavailable:", e)
 def pack(a):
     return {"name": a["name"], "start": a["start"], "cash": a["cash"], "curve": a["curve"], "trades": a["trades"],
-            "pos": [{"sym": k, "qty": v["qty"], "entry": v["entry"], "stop": max(v["stop"], v["trail"]), "target": v["target"], "last": a["last_px"].get(k, v["entry"]), "why": v["thesis"]} for k, v in a["pos"].items()],
-            "equity": a["cash"] + sum(v["qty"] * a["last_px"].get(k, v["entry"]) for k, v in a["pos"].items())}
+            "pos": [{"sym": k, "qty": v["qty"], "entry": v["entry"], "stop": max(v["stop"], v["trail"]), "target": v["target"], "last": a["last_px"].get(k, v["entry"]), "why": v["thesis"], "ccy": "CHF" if k.endswith(".SW") else "USD", "pnl": v["qty"] * (a["last_px"].get(k, v["entry"]) * (a["fx"] if k.endswith(".SW") else 1) - v["entry"] * v.get("fx0", 1))} for k, v in a["pos"].items()],
+            "equity": a["cash"] + sum(v["qty"] * a["last_px"].get(k, v["entry"]) * (a["fx"] if k.endswith(".SW") else 1) for k, v in a["pos"].items())}
 DATA = {"label": label, "playbook": pack(acc["playbook"]), "maxroi": pack(acc["maxroi"]), "bench": bench, "swarm": swarm, "desk": desk, "calls": calls}
 tpl = open(os.path.join(HERE, "dashboard_template.html")).read()
 out = tpl.replace("/*DATA*/", "const DATA=" + json.dumps(DATA, default=float, separators=(",", ":")) + ";")

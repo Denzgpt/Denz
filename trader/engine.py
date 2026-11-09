@@ -41,8 +41,8 @@ class Ind:
 class Account:
     def __init__(s, name, equity):
         s.name = name; s.cash = equity; s.start = equity; s.pos = {}; s.orders = {}; s.trades = []; s.curve = []; s.journal = []; s.peak = equity
-        s.day = None; s.day_start = equity; s.last_ts = 0; s.last_px = {}; s.cool = {}
-    def equity(s): return s.cash + sum(p["qty"] * s.last_px.get(k, p["entry"]) for k, p in s.pos.items())
+        s.day = None; s.day_start = equity; s.last_ts = 0; s.last_px = {}; s.cool = {}; s.fx = 1.0
+    def equity(s): return s.cash + sum(p["qty"] * s.last_px.get(k, p["entry"]) * (s.fx if k.endswith(".SW") else 1) for k, p in s.pos.items())
     def to_json(s): return {k: v for k, v in s.__dict__.items()}
     @staticmethod
     def from_json(d): a = Account(d["name"], d["start"]); a.__dict__.update(d); return a
@@ -53,17 +53,17 @@ iso = lambda t: dt.datetime.fromtimestamp(t, dt.UTC).strftime("%Y-%m-%dT%H:%M:%S
 def sell(a, sym, px, t, why, U):
     p = a.pos.pop(sym)
     if why.startswith('Stop'): a.cool[sym] = (day(t) + dt.timedelta(days=7)).isoformat()   # no re-buy for a week after a stop-out
-    fill = px * (1 - U["slippage_bp"] / 1e4); a.cash += p["qty"] * fill - U["fee_per_order"]
-    pnl = p["qty"] * (fill - p["entry"]) - 2 * U["fee_per_order"]
-    a.trades.append({"t": iso(t), "side": "SELL", "sym": sym, "qty": round(p["qty"], 4), "px": round(fill, 2), "pnl": round(pnl, 2), "note": why})
+    m = a.fx if sym.endswith(".SW") else 1.0; fill = px * (1 - U["slippage_bp"] / 1e4); a.cash += p["qty"] * fill * m - U["fee_per_order"]
+    pnl = p["qty"] * (fill * m - p["entry"] * p.get("fx0", 1.0)) - 2 * U["fee_per_order"]
+    a.trades.append({"t": iso(t), "side": "SELL", "sym": sym, "qty": round(p["qty"], 4), "px": round(fill, 2), "pnl": round(pnl, 2), "note": why, "ccy": "CHF" if sym.endswith(".SW") else "USD"})
 
 def buy(a, sym, o, px, t, U):
-    fill = px * (1 + U["slippage_bp"] / 1e4); qty = o["qty"]
-    cost = qty * fill + U["fee_per_order"]
-    if cost > a.cash: qty = max(0, (a.cash - U["fee_per_order"]) / fill); cost = qty * fill + U["fee_per_order"]
-    if qty * fill < 25: return
-    a.cash -= cost; a.pos[sym] = {"qty": qty, "entry": fill, "stop": o["stop"], "target": o["target"], "trail": 0, "opened": iso(t), "high": fill, "thesis": o["why"], "rule": o["rule"]}
-    a.trades.append({"t": iso(t), "side": "BUY", "sym": sym, "qty": round(qty, 4), "px": round(fill, 2), "pnl": None, "note": o["why"]})
+    m = a.fx if sym.endswith(".SW") else 1.0; fill = px * (1 + U["slippage_bp"] / 1e4); qty = o["qty"]
+    cost = qty * fill * m + U["fee_per_order"]
+    if cost > a.cash: qty = max(0, (a.cash - U["fee_per_order"]) / (fill * m)); cost = qty * fill * m + U["fee_per_order"]
+    if qty * fill * m < 25: return
+    a.cash -= cost; a.pos[sym] = {"qty": qty, "entry": fill, "fx0": m, "stop": o["stop"], "target": o["target"], "trail": 0, "opened": iso(t), "high": fill, "thesis": o["why"], "rule": o["rule"]}
+    a.trades.append({"t": iso(t), "side": "BUY", "sym": sym, "qty": round(qty, 4), "px": round(fill, 2), "pnl": None, "note": o["why"], "ccy": "CHF" if sym.endswith(".SW") else "USD"})
 
 def size(equity, entry, stop, risk, cap_val, cash):
     if entry <= stop: return 0
@@ -91,8 +91,8 @@ def playbook_orders(ctx, a, P, S):
         else: continue
         rr = (tgt - lim) / (lim - abort) if lim > abort else 0
         if rr < P["min_rr"]: continue
-        q = size(eq, lim, abort, P["risk_per_trade"] * half, min(P["starter_cap"], P["max_single"]) * eq, a.cash)
-        if q * lim >= 25: out[sym] = {"limit": lim, "stop": abort, "target": tgt, "qty": q, "rule": "gate", "why": f"Gate {lo:.2f}-{hi:.2f}, abort {abort:.2f}, target {tgt:.2f}, R:R {rr:.1f}:1, risk 1% sized ({'half size, drawdown guard' if half < 1 else 'full starter'})."}
+        fx = x["fx"]; q = size(eq, lim * fx, abort * fx, P["risk_per_trade"] * half, min(P["starter_cap"], P["max_single"]) * eq, a.cash)
+        if q * lim * fx >= 25: out[sym] = {"limit": lim, "stop": abort, "target": tgt, "qty": q, "rule": "gate", "why": f"Gate {lo:.2f}-{hi:.2f}, abort {abort:.2f}, target {tgt:.2f}, R:R {rr:.1f}:1, risk 1% sized ({'half size, drawdown guard' if half < 1 else 'full starter'})."}
     return out, None
 
 def maxroi_orders(ctx, a, M, S):
@@ -110,13 +110,13 @@ def maxroi_orders(ctx, a, M, S):
         cands.append((i["mom60"], sym, px, i))
     for mom, sym, px, i in sorted(cands, reverse=True)[: M["max_positions"] - len(a.pos)]:
         stop = px - M["stop_atr"] * i["atr"]; tgt = px + M["target_atr"] * i["atr"]
-        q = size(eq, px, stop, M["risk_per_trade"] * half, M["max_single"] * eq, a.cash)
-        if q * px >= 25: out[sym] = {"limit": px, "stop": stop, "target": tgt, "qty": q, "rule": "pullback", "why": f"Uptrend (50d>200d), pulled back {(i['hi20']-px)/i['atr']:.1f} ATR from the 20-day high; 60d momentum {mom*100:+.0f}%. Stop {stop:.2f} (2 ATR), target {tgt:.2f} (4 ATR)."}
+        fx = ctx[sym]["fx"]; q = size(eq, px * fx, stop * fx, M["risk_per_trade"] * half, M["max_single"] * eq, a.cash)
+        if q * px * fx >= 25: out[sym] = {"limit": px, "stop": stop, "target": tgt, "qty": q, "rule": "pullback", "why": f"Uptrend (50d>200d), pulled back {(i['hi20']-px)/i['atr']:.1f} ATR from the 20-day high; 60d momentum {mom*100:+.0f}%. Stop {stop:.2f} (2 ATR), target {tgt:.2f} (4 ATR)."}
     return out, None
 
-def step(a, kind, t, ctx_bars, ctx_ind_for, earn, S, P, M, U):
+def step(a, kind, t, ctx_bars, ctx_ind_for, earn, S, P, M, U, fx=1.0):
     """Process ONE 5-minute timestamp for one account."""
-    d = day(t)
+    d = day(t); a.fx = fx
     if a.day != d.isoformat(): a.day = d.isoformat(); a.day_start = a.equity()
     for sym, b in ctx_bars.items(): a.last_px[sym] = b["c"]
     # 1) fills of resting orders placed on the previous bar
@@ -140,7 +140,7 @@ def step(a, kind, t, ctx_bars, ctx_ind_for, earn, S, P, M, U):
         if kind == "maxroi" and (d - day(dt.datetime.fromisoformat(p["opened"].replace("Z", "+00:00")).timestamp())).days > M["max_hold_days"]: sell(a, sym, b["c"], t, "Time stop.", U)
     a.peak = max(a.peak, a.equity())
     # 3) new resting orders from this bar's close (fill from the next bar)
-    ctx = {s: {"px": b["c"], "ind": ctx_ind_for(s, d), "earn": earn.get(s, []), "t": t} for s, b in ctx_bars.items()}
+    ctx = {s: {"px": b["c"], "ind": ctx_ind_for(s, d), "earn": earn.get(s, []), "t": t, "fx": fx if s.endswith(".SW") else 1.0} for s, b in ctx_bars.items()}
     ctx = {s: x for s, x in ctx.items() if x["ind"]}
     orders, _ = (playbook_orders if kind == "playbook" else maxroi_orders)(ctx, a, P if kind == "playbook" else M, S)
     a.orders = orders
@@ -148,8 +148,16 @@ def step(a, kind, t, ctx_bars, ctx_ind_for, earn, S, P, M, U):
 def run(replay_from=None, reset=False, now_only=False):
     U = cfg("universe.json"); P = cfg("playbook.json"); M = cfg("maxroi.json"); S = J(os.environ["TRADER_SWARM"]) if os.environ.get("TRADER_SWARM") else cfg("swarm.json"); earn = {k: v for k, v in cfg("earnings.json").items() if not k.startswith("_")}
     syms = U["symbols"]; os.makedirs(ST, exist_ok=True)
-    bars5 = {s: yahoo(s, "5m", "1mo" if replay_from else "5d") for s in syms}
-    inds = {s: Ind(yahoo(s, "1d", "2y")) for s in syms}
+    bars5, inds = {}, {}
+    for s in syms:                                   # a symbol that fails to load is skipped, never fatal
+        try: bars5[s] = yahoo(s, "5m", "1mo" if replay_from else "5d"); inds[s] = Ind(yahoo(s, "1d", "2y"))
+        except Exception as e: print("skip", s, e)
+    syms = list(bars5)
+    fxb = yahoo(U["fx"]["CHF"], "5m", "1mo" if replay_from else "5d"); fxt = sorted(b["t"] for b in fxb); fxm = {b["t"]: b["c"] for b in fxb}
+    import bisect
+    def fx_at(t):
+        i = bisect.bisect_right(fxt, t) - 1
+        return fxm[fxt[i]] if i >= 0 else fxm[fxt[0]]
     accts = {}
     for k in ("playbook", "maxroi"):
         f = os.path.join(ST, f"{k}.json")
@@ -164,7 +172,7 @@ def run(replay_from=None, reset=False, now_only=False):
         cb = {s: idx[s][t] for s in syms if t in idx[s]}
         for k, a in accts.items():
             if t <= a.last_ts: continue
-            step(a, k, t, cb, lambda s, d: inds[s].at(d), earn, S, P, M, U); a.last_ts = t
+            step(a, k, t, cb, lambda s, d: inds[s].at(d), earn, S, P, M, U, fx_at(t)); a.last_ts = t
             if not a.curve or t - dt.datetime.fromisoformat(a.curve[-1]["t"].replace("Z", "+00:00")).timestamp() >= 3600 - 1:
                 a.curve.append({"t": iso(t), "eq": round(a.equity(), 2)})
         if "SPY" in cb and (not B["curve"] or t - dt.datetime.fromisoformat(B["curve"][-1]["t"].replace("Z", "+00:00")).timestamp() >= 3599):
