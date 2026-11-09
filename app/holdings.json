@@ -1,0 +1,19 @@
+{
+  "_note": "Synced from IBKR positions on 2026-11-09. Add/remove entries (or run sync) and groups are assigned automatically.",
+  "holdings": [
+    {"symbol":"AAAU","yahoo":"AAAU","name":"Perth Mint Physical Gold ETF","qty":12.5855,"avg":39.8076,"currency":"USD","assetClass":"STK"},
+    {"symbol":"ACX","yahoo":"ACX.MC","name":"Acerinox","qty":56,"avg":17.6236,"currency":"EUR","assetClass":"STK"},
+    {"symbol":"GOOGL","yahoo":"GOOGL","name":"Alphabet","qty":4.1814,"avg":299.4155,"currency":"USD","assetClass":"STK"},
+    {"symbol":"INTC","yahoo":"INTC","name":"Intel","qty":11.4283,"avg":65.714,"currency":"USD","assetClass":"STK"},
+    {"symbol":"JPM","yahoo":"JPM","name":"JPMorgan Chase","qty":3,"avg":313.4083,"currency":"USD","assetClass":"STK"},
+    {"symbol":"NBIS","yahoo":"NBIS","name":"Nebius Group","qty":3.4091,"avg":220.2885,"currency":"USD","assetClass":"STK"},
+    {"symbol":"NVDA","yahoo":"NVDA","name":"NVIDIA","qty":5.4515,"avg":212.7791,"currency":"USD","assetClass":"STK"},
+    {"symbol":"QQQ","yahoo":"QQQ","name":"Invesco QQQ Trust","qty":4.1468,"avg":620.0583,"currency":"USD","assetClass":"STK"},
+    {"symbol":"QQQI","yahoo":"QQQI","name":"NEOS Nasdaq-100 High Income ETF","qty":46.9851,"avg":53.2721,"currency":"USD","assetClass":"STK"},
+    {"symbol":"TTWO","yahoo":"TTWO","name":"Take-Two Interactive","qty":8.1027,"avg":231.4031,"currency":"USD","assetClass":"STK"},
+    {"symbol":"TTWO 27MAR19 230 C","yahoo":"TTWO","name":"TTWO Mar19'27 230 Call","qty":1,"avg":21.6904,"currency":"USD","assetClass":"OPT","option":{"strike":230,"expiry":"2027-03-19","right":"C","multiplier":100}},
+    {"symbol":"UBSG","yahoo":"UBSG.SW","name":"UBS Group","qty":17.8571,"avg":42.28,"currency":"CHF","assetClass":"STK"},
+    {"symbol":"VT","yahoo":"VT","name":"Vanguard Total World Stock ETF","qty":17.9581,"avg":156.1396,"currency":"USD","assetClass":"STK"},
+    {"symbol":"VWO","yahoo":"VWO","name":"Vanguard Emerging Markets ETF","qty":9.1723,"avg":54.7296,"currency":"USD","assetClass":"STK"}
+  ]
+}

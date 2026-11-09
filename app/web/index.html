@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holdings Forecast</title>
+<style>
+:root{--bg:#070d12;--panel:#0b141b;--line:#16262f;--tx:#cfe3ea;--dim:#6f8b96;--up:#2ee6b6;--dn:#ff5a6a;--ac:#4cc9f0;--warn:#ffb000}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px ui-monospace,Menlo,Consolas,monospace}
+header{display:flex;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+h1{font-size:14px;margin:0;letter-spacing:.1em;color:var(--ac)}.pill{border:1px solid var(--line);padding:2px 8px;border-radius:99px;color:var(--dim)}
+.pill.ro{color:var(--warn);border-color:var(--warn)}
+nav{display:flex;gap:4px;padding:8px 16px;overflow-x:auto;border-bottom:1px solid var(--line)}
+nav button{background:none;border:1px solid var(--line);color:var(--dim);padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;font:inherit}
+nav button.on{color:var(--bg);background:var(--ac);border-color:var(--ac)}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:12px;padding:16px}
+@media(max-width:520px){main{grid-template-columns:1fr;padding:12px 16px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sym{font-size:16px;font-weight:700}.nm{color:var(--dim);font-size:11px}
+.px{font-size:20px;font-weight:700}.up{color:var(--up)}.dn{color:var(--dn)}
+canvas{width:100%;height:200px;display:block;margin:8px 0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.stats div{border-top:1px solid var(--line);padding-top:4px}
+.stats b{display:block;font-size:13px}.stats span{color:var(--dim);font-size:10px;text-transform:uppercase}
+.fresh{font-size:11px;color:var(--dim)}.fresh.stale{color:var(--warn)}.err{color:var(--dn);font-size:11px}
+.ctl{margin-left:auto;display:flex;gap:6px}.ctl button{background:none;border:1px solid var(--line);color:var(--dim);padding:3px 8px;border-radius:5px;cursor:pointer;font:inherit}.ctl button.on{color:var(--ac);border-color:var(--ac)}
+.opt{color:var(--warn);font-size:11px}
+</style></head><body>
+<header><h1>HOLDINGS FORECAST</h1><span class="pill" id="eng">engine…</span><span class="pill ro">READ-ONLY · NO ORDERS</span>
+<span class="pill" id="clock"></span>
+<div class="ctl"><button data-i="1h" class="on">1h bars</button><button data-i="1d">daily bars</button></div></header>
+<nav id="tabs"></nav><main id="main"></main>
+<script>
+let G={},tab=null,interval='1h',F={},HR={};
+const $=s=>document.querySelector(s),fmt=(x,d=2)=>x==null?'–':Number(x).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const ago=t=>{if(!t)return'no data';const s=Math.max(0,Date.now()/1000-t);return s<90?Math.round(s)+'s ago':s<5400?Math.round(s/60)+'m ago':s<172800?Math.round(s/3600)+'h ago':Math.round(s/86400)+'d ago'};
+async function j(u){const r=await fetch(u);const d=await r.json();if(d.error)throw new Error(d.error);return d}
+document.querySelectorAll('.ctl button').forEach(b=>b.onclick=()=>{interval=b.dataset.i;document.querySelectorAll('.ctl button').forEach(x=>x.classList.toggle('on',x==b));F={};render();loadForecasts()});
+function tabs(){const n=$('#tabs');n.innerHTML='';Object.keys(G).sort().forEach(g=>{const b=document.createElement('button');b.textContent=`${g} (${G[g].length})`;b.className=g==tab?'on':'';b.onclick=()=>{tab=g;tabs();render();loadForecasts()};n.append(b)})}
+function render(){const m=$('#main');m.innerHTML='';(G[tab]||[]).forEach(h=>{const c=document.createElement('div');c.className='card';c.id='c-'+h.symbol.replace(/\W/g,'_');m.append(c);draw(h)})}
+function draw(h){const c=document.getElementById('c-'+h.symbol.replace(/\W/g,'_'));if(!c)return;const f=F[h.symbol]+'',d=F[h.symbol],q=d&&d.quote||h;
+ const px=q.price,pc=q.prevClose||h.prevClose,chg=pc?(px/pc-1)*100:null,age=q.asof?Date.now()/1000-q.asof:1e9;
+ const stale=age>(interval=='1h'?1200:90000);
+ c.innerHTML=`<div class="top"><div><span class="sym">${h.symbol}</span><div class="nm">${h.name}</div></div><div style="text-align:right"><div class="px">${fmt(px)} <small>${h.currency}</small></div><div class="${chg>=0?'up':'dn'}">${chg==null?'':(chg>=0?'+':'')+fmt(chg)+'%'}</div></div></div>
+ <canvas></canvas>
+ ${d?`<div class="stats"><div><span>P(up) @${d.horizon}</span><b class="${d.probUp>=.5?'up':'dn'}">${fmt(d.probUp*100,0)}%</b></div><div><span>Median move</span><b class="${d.expMovePct>=0?'up':'dn'}">${fmt(d.expMovePct)}%</b></div><div><span>P10 – P90</span><b>${fmt(d.p10.at(-1))}–${fmt(d.p90.at(-1))}</b></div><div><span>Hit-rate</span><b>${HR[h.symbol]&&HR[h.symbol].n?fmt(HR[h.symbol].hits/HR[h.symbol].n*100,0)+'% ('+HR[h.symbol].n+')':'0/0'}</b></div></div>`:'<div class="fresh">loading forecast…</div>'}
+ ${h.option?`<div class="opt">Option: ${h.option.right=='C'?'Call':'Put'} strike ${h.option.strike}, exp ${h.option.expiry} — forecast is for the underlying; strike line shown if in range.</div>`:''}
+ <div class="fresh ${stale?'stale':''}">price as of ${ago(q.asof)}${stale?' · market closed or data delayed':''}${d?` · forecast ${d.engine}${d.note?' (fallback: '+d.note+')':''}`:''}</div>
+ ${F[h.symbol+'!err']?`<div class="err">${F[h.symbol+'!err']}</div>`:''}`;
+ if(d)chart(c.querySelector('canvas'),d,h)}
+function chart(cv,d,h){const r=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*r;cv.height=H*r;const x=cv.getContext('2d');x.scale(r,r);
+ const bars=d.bars.slice(-60),n=bars.length,hz=d.horizon,tot=n+hz;
+ let lo=Infinity,hi=-Infinity;bars.forEach(b=>{lo=Math.min(lo,b.l);hi=Math.max(hi,b.h)});d.p10.concat(d.p90).forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v)});
+ if(h.option&&h.option.strike<hi*1.2&&h.option.strike>lo*.8){lo=Math.min(lo,h.option.strike);hi=Math.max(hi,h.option.strike)}
+ const pad=(hi-lo)*.06;lo-=pad;hi+=pad;const X=i=>8+i/(tot-1)*(W-60),Y=v=>H-8-(v-lo)/(hi-lo)*(H-16);
+ const bw=Math.max(1.5,(W-60)/tot*.6);
+ bars.forEach((b,i)=>{const up=b.c>=b.o;x.strokeStyle=x.fillStyle=up?'#2ee6b6':'#ff5a6a';x.beginPath();x.moveTo(X(i),Y(b.h));x.lineTo(X(i),Y(b.l));x.stroke();x.fillRect(X(i)-bw/2,Math.min(Y(b.o),Y(b.c)),bw,Math.max(1,Math.abs(Y(b.o)-Y(b.c))))});
+ const x0=n-1,last=bars[n-1].c;
+ x.lineWidth=.6;d.paths.forEach(p=>{const e=p[p.length-1];x.strokeStyle=e>=last?'rgba(46,230,182,.14)':'rgba(255,90,106,.14)';x.beginPath();x.moveTo(X(x0),Y(last));p.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke()});
+ x.lineWidth=1;[['p10','rgba(255,90,106,.8)'],['p90','rgba(46,230,182,.8)']].forEach(([k,c])=>{x.strokeStyle=c;x.setLineDash([3,3]);x.beginPath();x.moveTo(X(x0),Y(last));d[k].forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke()});x.setLineDash([]);
+ x.lineWidth=2;x.strokeStyle='#ffd166';x.beginPath();x.moveTo(X(x0),Y(last));d.median.forEach((v,i)=>x.lineTo(X(x0+1+i),Y(v)));x.stroke();
+ x.fillStyle='#6f8b96';x.font='10px monospace';x.textAlign='left';[hi-pad,(hi+lo)/2,lo+pad].forEach(v=>x.fillText(fmt(v),W-50,Y(v)+3));
+ x.strokeStyle='#16262f';x.setLineDash([2,4]);x.beginPath();x.moveTo(X(x0),0);x.lineTo(X(x0),H);x.stroke();x.setLineDash([]);
+ if(h.option&&h.option.strike>lo&&h.option.strike<hi){x.strokeStyle='#ffb000';x.setLineDash([6,3]);x.beginPath();x.moveTo(0,Y(h.option.strike));x.lineTo(W-55,Y(h.option.strike));x.stroke();x.setLineDash([]);x.fillStyle='#ffb000';x.fillText('strike '+h.option.strike,8,Y(h.option.strike)-3)}}
+async function loadForecasts(){const hs=G[tab]||[],t=tab;await Promise.all(hs.map(async h=>{try{F[h.symbol]=await j(`/api/forecast?sym=${encodeURIComponent(h.symbol)}&interval=${interval}&horizon=${interval=='1h'?24:10}`);delete F[h.symbol+'!err'];
+  j(`/api/hitrate?sym=${encodeURIComponent(h.symbol)}&interval=${interval}`).then(r=>{HR[h.symbol]=r}).catch(()=>{})}catch(e){F[h.symbol+'!err']=e.message}
+  if(t==tab)draw(h)}))}
+async function refreshHoldings(){try{const d=await j('/api/holdings');G=d.groups;$('#eng').textContent='engine: '+d.engine+(d.note?' (Kronos unavailable → fallback)':'');
+  if(!tab||!G[tab])tab=Object.keys(G).sort()[0];tabs();if(!Object.keys(F).length){render();loadForecasts()}else(G[tab]||[]).forEach(draw)}catch(e){$('#main').innerHTML='<div class="err">'+e.message+'</div>'}}
+setInterval(()=>$('#clock').textContent=new Date().toLocaleTimeString()+' local',1000);
+refreshHoldings();setInterval(refreshHoldings,10000);setInterval(()=>{if(tab)loadForecasts()},30000);
+</script></body></html>
