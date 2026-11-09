@@ -2,7 +2,7 @@
 import sys, os, json, time, math, numpy as np, pandas as pd
 sys.path.insert(0, os.path.dirname(__file__)); os.environ.setdefault("KRONOS_SAMPLES", "16")
 import data, forecast
-syms = sys.argv[1].split(",") if len(sys.argv) > 1 else ["QQQ", "NVDA", "JPM"]; H = 10; N = 16; STEP = 8; out = []
+syms = sys.argv[1].split(",") if len(sys.argv) > 1 else ["QQQ", "NVDA", "JPM"]; H = 10; N = int(os.environ.get("N", 16)); STEP = int(os.environ.get("STEP", 8)); OUTF = os.environ.get("OUTF", "kronos_backtest.json"); out = []
 pred = forecast._load_kronos(); print("engine", forecast.engine_status(), flush=True)
 for s in syms:
     b, _ = data.bars(s, "1d", "5y", ttl=3600); n = len(b); closes = np.array([x["c"] for x in b])
@@ -17,7 +17,7 @@ for s in syms:
             rec[name + "_med"] = float(np.median(P[:, -1]) / last - 1); rec[name + "_pup"] = float((P[:, -1] > last).mean())
             z = np.log(P[:, -1] / last) / sg; pr = np.bincount(np.digitize(z, forecast.EDGES), minlength=5) / len(z); rec[name + "_top"] = int(pr.argmax()); rec[name + "_ptop"] = float(pr.max())
         rec["real_bin"] = int(np.digitize(math.log(1 + real) / sg, forecast.EDGES)); out.append(rec); print(s, t, round(real * 100, 1), round(rec["k_med"] * 100, 1), round(rec["m_med"] * 100, 1), flush=True)
-json.dump(out, open("kronos_backtest.json", "w"))
+json.dump(out, open(OUTF, "w"))
 r = pd.DataFrame(out)
 for k, lab in (("k", "Kronos"), ("m", "Monte Carlo")):
     sign = (np.sign(r[k + "_med"]) == np.sign(r.real)).mean(); corr = np.corrcoef(r[k + "_med"], r.real)[0, 1]
