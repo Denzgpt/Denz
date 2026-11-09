@@ -1,22 +1,23 @@
-# Holdings Forecast (read-only)
+# Holdings Forecast (read-only, live)
 
-Live per-holding forecast dashboard, tabs per asset group. **No order placement exists in this code.**
+Per-holding forecast dashboard: most likely scenario + probability, chart with levels and event markers.
+**No order placement exists in this code.**
 
-## Run (on your own machine, so data is live)
-    python3 -m pip install numpy
-    python3 app/server.py 8765      # open http://localhost:8765
+## Run it (your own machine, so prices are live)
+    ./app/start.sh          # installs deps, clones Kronos once, serves http://localhost:8765
 
-## Real Kronos model (recommended)
-    cd app && git clone https://github.com/shiyu-coder/Kronos
-    pip install torch pandas huggingface_hub einops safetensors
-Restart the server; the badge flips from `monte-carlo` to `kronos-small`. Until then a bootstrapped
-Monte Carlo fallback (same UI) is used and the page says so.
+The first Kronos forecast downloads the model weights (~100 MB) from Hugging Face. On CPU a forecast of
+60 sampled paths takes roughly 10-60 s per holding (cached for 5 min); set `KRONOS_SAMPLES` to change it.
+Without Kronos installed the app falls back to a Monte Carlo and says so on the page.
+
+## What feeds each call
+- Sampled price paths from Kronos (or the Monte Carlo fallback), tilted slightly by trend and RSI.
+- Events: `events.json` (macro), `../trader/config/earnings.json` (earnings) and `../trader/config/swarm.json` (swarm vetoes). Anything inside the forecast window lowers confidence and is drawn on the chart.
+- Probabilities are mapped to what each confidence band really delivered in a walk-forward backtest (`forecast.calibrate`).
 
 ## Staying fresh
-Prices poll every 10s, forecasts recompute on each new bar (cached 5 min), every card shows "price as of",
-and turns amber when data is stale/market closed. Free Yahoo data can be ~15 min delayed on some exchanges.
+Prices poll every 10 s, forecasts recompute on each new bar, every card shows "price as of", amber when stale.
+`holdings.json` is a snapshot of your IBKR positions; new entries are grouped automatically (`groups.py`).
 
-## Holdings & groups
-`holdings.json` is a snapshot of the IBKR positions. New entries are grouped automatically (`groups.py`:
-sector map, ETF keywords, else a new "Other stocks" group). Override with `groups_override.json`
-(`{"SYMBOL": "Group name"}`). Options are forecast via their underlying with the strike drawn.
+## Demo page
+`python3 app/build_demo.py` freezes the app into `demo/artifact.html`.
