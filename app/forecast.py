@@ -2,6 +2,7 @@
 Both return the same shape: horizon bars x N sampled close paths + OHLC median bars."""
 import os, sys, math, numpy as np
 KRONOS_DIR = os.path.join(os.path.dirname(__file__), "Kronos")
+KRONOS_N = int(os.environ.get('KRONOS_SAMPLES', 60))
 _kronos = {"tried": False, "pred": None, "err": None}
 
 def _load_kronos():
@@ -34,14 +35,12 @@ def _mc(closes, horizon, n):
     return closes[-1] * np.exp(np.cumsum(blocks, axis=1))
 
 def _kronos_paths(df, ts, horizon, n, step):
+    """n independent sampled paths in ONE batched pass (predict() would average samples; predict_batch keeps them apart)."""
     import pandas as pd
     pred = _load_kronos()
     future = pd.Series(pd.date_range(ts.iloc[-1], periods=horizon + 1, freq=step)[1:])
-    paths = []
-    for _ in range(n):
-        out = pred.predict(df=df, x_timestamp=ts, y_timestamp=future, pred_len=horizon, T=1.0, top_p=0.9, sample_count=1, verbose=False)
-        paths.append(out["close"].to_numpy())
-    return np.array(paths)
+    outs = pred.predict_batch([df] * n, [ts] * n, [future] * n, pred_len=horizon, T=1.0, top_p=0.9, sample_count=1, verbose=False)
+    return np.array([o["close"].to_numpy() for o in outs])
 
 def forecast(bars, horizon=24, n=400, step="1h"):
     closes = np.array([b["c"] for b in bars], dtype=float)
@@ -52,7 +51,7 @@ def forecast(bars, horizon=24, n=400, step="1h"):
         df = pd.DataFrame(bars[-512:]).rename(columns={"o": "open", "h": "high", "l": "low", "c": "close", "v": "volume"})
         df["amount"] = df["close"] * df["volume"]
         ts = pd.to_datetime(df.pop("t"), unit="s")
-        paths = _kronos_paths(df[["open", "high", "low", "close", "volume", "amount"]], ts, horizon, n, step)
+        paths = _kronos_paths(df[["open", "high", "low", "close", "volume", "amount"]], ts, horizon, min(n, KRONOS_N), step)
     else:
         paths = _mc(closes, horizon, n)
     q = lambda p: np.percentile(paths, p, axis=0)

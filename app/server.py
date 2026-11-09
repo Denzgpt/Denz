@@ -50,19 +50,38 @@ def api_forecast(sym, interval, horizon):
     try: cal = calibration(h["yahoo"], interval, horizon)
     except Exception: cal = None
     an = forecast.analyse(res["_np"], closes, horizon, events_for(sym, bars[-1]["t"], interval, horizon), cal, sym, "hours" if interval == "1h" else "trading days")
-    return {**{k: v for k, v in res.items() if k != "_np"}, "analysis": an, "bars": bars[-120:], "quote": q, "now": int(time.time()), "currency": meta.get("currency"),
+    lv = []
+    try:
+        db = data.bars(h["yahoo"], "1d", "2y", ttl=600)[0]; dc = np.array([b["c"] for b in db]); dh = np.array([b["h"] for b in db]); dl = np.array([b["l"] for b in db])
+        lv = [{"name": "50-day avg", "price": float(dc[-50:].mean())}, {"name": "200-day avg", "price": float(dc[-200:].mean())},
+              {"name": "20-day high", "price": float(dh[-20:].max())}, {"name": "20-day low", "price": float(dl[-20:].min())},
+              {"name": "52-week high", "price": float(dh[-252:].max())}, {"name": "52-week low", "price": float(dl[-252:].min())}]
+    except Exception: pass
+    return {**{k: v for k, v in res.items() if k != "_np"}, "analysis": an, "levels": lv, "bars": bars[-120:], "quote": q, "now": int(time.time()), "currency": meta.get("currency"),
             "option": h.get("option"), "marketState": meta.get("currentTradingPeriod") and "see-asof"}
 
 def events_for(sym, last_t, interval, horizon):
-    try: ev = json.load(open(os.path.join(HERE, "events.json")))["events"]
-    except Exception: return []
+    ev = []
+    try: ev += json.load(open(os.path.join(HERE, "events.json")))["events"]
+    except Exception: pass
+    TC = os.path.join(HERE, "..", "trader", "config")                      # one shared source with the paper trader
+    try:
+        for s_, ds in json.load(open(os.path.join(TC, "earnings.json"))).items():
+            if s_.startswith("_"): continue
+            for d_ in ds: ev.append({"date": d_, "label": f"{s_} earnings", "scope": [s_], "verified": False, "kind": "earnings"})
+    except Exception: pass
+    try:
+        sw = json.load(open(os.path.join(TC, "swarm.json")))
+        for s_, why in (sw.get("veto") or {}).items():
+            ev.append({"date": str(datetime.datetime.utcfromtimestamp(last_t).date()), "label": f"Swarm veto: {why}", "scope": [s_], "verified": True, "kind": "swarm"})
+    except Exception: pass
     days = (horizon / 6.5 if interval == "1h" else horizon * 1.45) + 1
     d0 = datetime.datetime.utcfromtimestamp(last_t).date()
     out = []
     for e in ev:
         d = datetime.date.fromisoformat(e["date"])
-        if (e["scope"] == "all" or sym in e["scope"]) and 0 <= (d - d0).days <= days:
-            out.append({"date": e["date"], "label": e["label"], "verified": e.get("verified", False)})
+        if (e["scope"] == "all" or sym.split(" ")[0] in e["scope"] or sym in e["scope"]) and 0 <= (d - d0).days <= days:
+            out.append({"date": e["date"], "label": e["label"], "verified": e.get("verified", False), "kind": e.get("kind", "macro")})
     return out
 
 CAL = {}
