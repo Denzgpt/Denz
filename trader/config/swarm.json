@@ -1,10 +1,9 @@
 {
- "asof": "2026-11-09T18:10:00Z",
- "regime": "Fear-tinged chop after Thursday's shock; no thesis-breaking news on XOM/CRWD; CPI Tuesday.",
+ "asof": "2026-11-10T08:15:00Z",
+ "regime": "Cautious chop ahead of Tuesday CPI; no thesis-breaking news found on XOM/CRWD/PANW; TTWO earnings veto expired.",
  "global_pause": false,
  "veto": {
-  "NVDA": "Drop of 4.7% pre-market with no verified cause; wait for explanation.",
-  "TTWO": "Earnings after the close on 9 Nov (binary event)."
+  "NVDA": "Drop of 4.7% pre-market with no verified cause; wait for explanation."
  },
  "bots": [],
  "decision": "No trade overall."
