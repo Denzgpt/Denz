@@ -1,6 +1,6 @@
 {
- "asof": "2026-11-10T11:10:00Z",
- "regime": "Cautious chop; no thesis-breaking news found on held names (XOM, CRWD, PANW, Swiss SCMN/SREN/GIVN/ZURN).",
+ "asof": "2026-11-10T14:15:00Z",
+ "regime": "Cautious chop; search found no fresh thesis-breaking news on held names (XOM, CRWD, PANW, SCMN/SREN/GIVN/ZURN); NVDA veto kept.",
  "global_pause": false,
  "veto": {
   "NVDA": "Drop of 4.7% pre-market with no verified cause; wait for explanation."
