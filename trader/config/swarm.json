@@ -1,6 +1,6 @@
 {
- "asof": "2026-11-10T08:15:00Z",
- "regime": "Cautious chop ahead of Tuesday CPI; no thesis-breaking news found on XOM/CRWD/PANW; TTWO earnings veto expired.",
+ "asof": "2026-11-10T11:10:00Z",
+ "regime": "Cautious chop; no thesis-breaking news found on held names (XOM, CRWD, PANW, Swiss SCMN/SREN/GIVN/ZURN).",
  "global_pause": false,
  "veto": {
   "NVDA": "Drop of 4.7% pre-market with no verified cause; wait for explanation."
