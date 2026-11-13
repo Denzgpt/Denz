@@ -1,6 +1,6 @@
 {
- "asof": "2026-11-12T16:12:00Z",
- "regime": "Cautious chop after the Nov 5 AI-chip rout; no thesis-breaking news for CRWD or held Swiss names (2026-11-12 16:12 UTC); NVDA veto kept until board probe/earnings on Nov 17.",
+ "asof": "2026-11-13T08:15:00Z",
+ "regime": "Cautious chop after the Nov 5 AI-chip rout; no thesis-breaking news for held names (2026-11-13 08:15 UTC); NVDA veto kept until Nov 17.",
  "global_pause": false,
  "veto": {
   "NVDA": "Board probe (Huang foreign-intel targeting) and Q3 results due 2026-11-17; veto until event passes."
