@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Holdings Forecast</title>
+<title>Daily Predictions</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: paper page; a dark swarm strip on top, then one tab per asset group, one card per holding with a dark forecast panel inside. Same visual language as Paper Trader and The Desk. */
@@ -59,7 +59,7 @@ table{border-collapse:collapse;width:100%;margin-top:6px;font-variant-numeric:ta
 <div class="wrap">
 <header>
  <div class="eyebrow">Read-only · no orders · forecasts, not advice</div>
- <h1>Holdings <em>forecast</em></h1>
+ <h1>Daily <em>predictions</em></h1>
  <p class="lede">One call per position: the single most likely path, how likely it is, and why. Each probability is checked against thousands of walk-forward tests on that holding's own price history.</p>
  <div class="chips" id="chips"></div>
 </header>
@@ -121,7 +121,7 @@ function chart(cv,d,h){const r=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientH
 async function loadForecasts(){const hs=G[tab]||[],t=tab,hz=interval=='1h'?24:10;await Promise.all(hs.map(async h=>{try{F[h.symbol]=await j(`/api/forecast?sym=${encodeURIComponent(h.symbol)}&interval=${interval}&horizon=${hz}`);delete F[h.symbol+'!err']}catch(e){F[h.symbol+'!err']=e.message}
   if(t==tab)draw(h)}))}
 async function refreshHoldings(){try{const d=await j('/api/holdings');G=d.groups;DESK=d.desk;
-  $('#chips').innerHTML=`<span class="chip ro">Read-only</span><span class="chip">Engine <b>${esc(d.engine)}</b></span><span class="chip">Holdings <b>${Object.values(G).reduce((a,v)=>a+v.length,0)}</b></span><span class="chip">Groups <b>${Object.keys(G).length}</b></span>`;
+  $('#chips').innerHTML=`<span class="chip ro">Read-only</span><span class="chip">Engine <b>${esc(d.engine)}</b></span><span class="chip">Holdings <b>${Object.values(G).reduce((a,v)=>a+v.length,0)}</b></span><span class="chip">Groups <b>${Object.keys(G).length}</b></span>${window.SNAPSHOT_AT?`<span class="chip">Updated <b>${new Date(window.SNAPSHOT_AT*1000).toLocaleString([], {weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</b> · refreshed every weekday morning</span>`:''}`;
   swarm();if(!tab||!G[tab])tab=Object.keys(G).sort()[0];tabs();if(!Object.keys(F).length){render();loadForecasts()}else(G[tab]||[]).forEach(draw)}catch(e){$('#main').innerHTML='<div class="err">'+esc(e.message)+'</div>'}}
 refreshHoldings();setInterval(refreshHoldings,10000);setInterval(()=>{if(tab)loadForecasts()},30000);
 </script></body></html>
