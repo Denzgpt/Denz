@@ -25,7 +25,7 @@ link = re.search(r"<link[^>]*fonts[^>]*>", html).group(0)
 body = body.replace("<script>", f"<script>window.SNAPSHOT={json.dumps(snap,separators=(',',':'))};window.SNAPSHOT_AT={now};\n", 1)
 body = body.replace("setInterval(refreshHoldings,10000);setInterval(()=>{if(tab)loadForecasts()},30000);", "")
 body = body.replace("let G={},tab=null,interval='1d'", "let G={},tab=null,interval='1d'")
-out = f'<title>Holdings Forecast</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n{link}\n<style>{style}</style>\n{body}'
+out = f'<title>Daily Predictions</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n{link}\n<style>{style}</style>\n{body}'
 os.makedirs(os.path.join(HERE, "..", "demo"), exist_ok=True)
 open(os.path.join(HERE, "..", "demo", "artifact.html"), "w").write(out)
 print("bytes", len(out))
