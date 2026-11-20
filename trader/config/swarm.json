@@ -1,9 +1,9 @@
 {
- "asof": "2026-11-19T00:00:00Z",
- "regime": "Cautious chop after the AI-chip rout and Commerce move on Nvidia China loophole; no thesis-breaking news on held names (2026-11-19); NVDA veto kept.",
+ "asof": "2026-11-20T00:00:00Z",
+ "regime": "Cautious chop after the AI-chip rout; CRWD rebounded after its 11-17 drop (earnings Dec 1), no thesis-breaking news on held names (2026-11-20); NVDA veto kept.",
  "global_pause": false,
  "veto": {
-  "NVDA": "Board probe and unverified leadership reports after 11-17 results; veto until clarified (rechecked 2026-11-19)."
+  "NVDA": "Board probe and unverified leadership reports after 11-17 results; veto until clarified (rechecked 2026-11-20)."
  },
  "bots": [],
  "decision": "No trade overall."
