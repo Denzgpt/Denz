@@ -16,9 +16,9 @@ Built in one long chat (Nov 9-15, 2026) for Denzel. Everything is read-only: no 
 ## Scheduled tasks (claude.ai routines). Since 23 Nov all fire into the chat "Portfolio MD with Code" (session_01X4RgXcbjSBdR6QzY5Q7T68)
 
 - `trig_01ECXT1U1Bk3sg9a8jaRwht4` Daily predictions: weekdays 08:37 New York (about 50 min before the US open). Runs `python3 app/run_daily.py`, publishes both forecast artifacts from that chat, sends a push, replies with the calls. No NBIS in the message. No images or files, by his choice.
-- `trig_01D9A6C9J8xrHwjiheoTiVdg` Swarm trader hourly run: weekdays 08:07-21:07 UTC (Swiss and US hours). Replays 5-minute bars into both accounts, pushes state to branch `trader-state`, republishes the desk artifact. Silent: one-line reply, no notification.
-- `trig_01C6U2CU1RJofoTGMjYjFrju` Swarm trader daily overview: weekdays 21:37 UTC, chat reply plus a push.
-- Disabled (they ran as separate sessions, whose pushes never reached him): `trig_011mT8LEACNAwPo6VoyXnPmz`, `trig_01Vbhvb3Tik3pKzffW8TZgpR`, `trig_01RbiFNAEirJu14wzrnfR7RV`, `trig_01FWt1f9QwA82WKmy8GFg9cR`.
+- `trig_01Xv4MZGkcseFAKhDcELxTid` Swarm trader hourly run: weekdays 08:07-21:07 UTC (Swiss and US hours). Replays 5-minute bars into both accounts and pushes state to branch `trader-state`. Silent: one-line reply, no notification, no artifact publishing.
+- `trig_01CTRe1uvZJPNgKTNfnMUAwv` Swarm trader daily overview: weekdays 21:37 UTC. Rebuilds and publishes the swarm desk artifact (https://claude.ai/artifact/YHojKKq3YUtJKsdu6f3LY7) once a day, then a chat overview plus a push.
+- Disabled (they ran as separate sessions, whose pushes never reached him): `trig_011mT8LEACNAwPo6VoyXnPmz`, `trig_01Vbhvb3Tik3pKzffW8TZgpR`, `trig_01RbiFNAEirJu14wzrnfR7RV`, `trig_01FWt1f9QwA82WKmy8GFg9cR`, `trig_01D9A6C9J8xrHwjiheoTiVdg`, `trig_01C6U2CU1RJofoTGMjYjFrju` (the last two were replaced by the pair above).
 - That chat also holds older, separate jobs: the LLM-judgement "Paper Trader: autonomous mock trading" (ledger.py, artifact SvT6ysWDeMthuG3qeKrWcL), The Desk nightly bots, and the silent hourly gate watch. They are a different paper account from the mechanical Playbook and Max-ROI accounts here. Do not mix their state.
 - A push sent from a chat reaches his phone (tested). Pushes from separate routine sessions did not.
 
