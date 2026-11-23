@@ -13,12 +13,14 @@ Built in one long chat (Nov 9-15, 2026) for Denzel. Everything is read-only: no 
 | Mechanical paper trader | `trader/engine.py`, `trader/config/*.json`, state on branch `trader-state` (`trader/state/`) | working |
 | TTWO studies | `backtests/` (earnings moves, game launches, option scenarios, strike probability) | done |
 
-## Scheduled tasks (claude.ai routines, all create a fresh session each time)
+## Scheduled tasks (claude.ai routines). Since 23 Nov all fire into the chat "Portfolio MD with Code" (session_01X4RgXcbjSBdR6QzY5Q7T68)
 
-- `trig_011mT8LEACNAwPo6VoyXnPmz` Daily predictions artifact: weekdays 08:37 New York (about 50 min before the US open). Runs `python3 app/run_daily.py`, republishes both forecast pages, sends a push notification. No images or files, by his choice.
-- `trig_01RbiFNAEirJu14wzrnfR7RV` Swarm trader hourly run: weekdays 08:07-21:07 UTC (Swiss and US hours). Replays 5-minute bars into both accounts, pushes state to branch `trader-state`, republishes the desk page.
-- `trig_01FWt1f9QwA82WKmy8GFg9cR` Swarm trader daily overview: weekdays 21:37 UTC, push notification.
-These sessions have no connectors (no IBKR, no Bigdata.com). To move a schedule into a particular chat, recreate it with `persistent_session_id` set to that chat's session.
+- `trig_01ECXT1U1Bk3sg9a8jaRwht4` Daily predictions: weekdays 08:37 New York (about 50 min before the US open). Runs `python3 app/run_daily.py`, publishes both forecast artifacts from that chat, sends a push, replies with the calls. No NBIS in the message. No images or files, by his choice.
+- `trig_01D9A6C9J8xrHwjiheoTiVdg` Swarm trader hourly run: weekdays 08:07-21:07 UTC (Swiss and US hours). Replays 5-minute bars into both accounts, pushes state to branch `trader-state`, republishes the desk artifact. Silent: one-line reply, no notification.
+- `trig_01C6U2CU1RJofoTGMjYjFrju` Swarm trader daily overview: weekdays 21:37 UTC, chat reply plus a push.
+- Disabled (they ran as separate sessions, whose pushes never reached him): `trig_011mT8LEACNAwPo6VoyXnPmz`, `trig_01Vbhvb3Tik3pKzffW8TZgpR`, `trig_01RbiFNAEirJu14wzrnfR7RV`, `trig_01FWt1f9QwA82WKmy8GFg9cR`.
+- That chat also holds older, separate jobs: the LLM-judgement "Paper Trader: autonomous mock trading" (ledger.py, artifact SvT6ysWDeMthuG3qeKrWcL), The Desk nightly bots, and the silent hourly gate watch. They are a different paper account from the mechanical Playbook and Max-ROI accounts here. Do not mix their state.
+- A push sent from a chat reaches his phone (tested). Pushes from separate routine sessions did not.
 
 ## Decisions and preferences from the chat
 
