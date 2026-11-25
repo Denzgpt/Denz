@@ -1,6 +1,6 @@
 {
- "asof": "2026-11-24T00:00:00Z",
- "regime": "Rebound day 23 Nov (S&P +4.7%) fading pre-market on 24 Nov; no thesis-breaking news found on held names (2026-11-24); CRWD earnings 1-2 Dec; Fed 8-9 Dec priced for a hike; NVDA veto kept.",
+ "asof": "2026-11-25",
+ "regime": "Whipsaw 25 Nov: QQQ hit -4.8% intraday then recovered to about -1%, chips still down; US closed Thu 26 Nov, half day Fri 27 Nov; CRWD earnings 1-2 Dec; Fed 8-9 Dec priced for a hike; no thesis-breaking news found (2026-11-25); NVDA veto kept.",
  "global_pause": false,
  "veto": {
   "NVDA": "Board probe and unverified leadership reports after 11-17 results; a reported 23 Nov CEO reinstatement is not confirmed by a primary source I could find; veto kept (rechecked 2026-11-24)."
